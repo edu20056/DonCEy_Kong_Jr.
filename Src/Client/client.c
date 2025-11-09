@@ -6,7 +6,7 @@
 #include <sys/select.h>
 
 #define BUFFER_SIZE 1024
-#define SERVER_IP "192.168.101.40"    
+#define SERVER_IP "127.0.0.1"    
 #define SERVER_PORT 5000  
 
 void trim_newline(char *str) {
@@ -176,7 +176,7 @@ int main() {
                     }
 
                     // Enviar mensaje con newline
-                    char mensaje_con_newline[BUFFER_SIZE];
+                    char mensaje_con_newline[BUFFER_SIZE * 2];
                     snprintf(mensaje_con_newline, sizeof(mensaje_con_newline), "%s\n", buffer);
                     send(sock, mensaje_con_newline, strlen(mensaje_con_newline), 0);
                     printf("> ");
@@ -230,7 +230,7 @@ int main() {
         trim_newline(nombre);
         
         // Enviar nombre del jugador al servidor CON newline
-        char nombre_con_newline[BUFFER_SIZE];
+        char nombre_con_newline[BUFFER_SIZE * 2 ];
         snprintf(nombre_con_newline, sizeof(nombre_con_newline), "%s\n", nombre);
         send(sock, nombre_con_newline, strlen(nombre_con_newline), 0);
         
