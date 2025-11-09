@@ -1,9 +1,6 @@
 # DonCEy Kong Jr.
 
 **Version:** 0.0.1 
-**Course:** CE1106 - Paradigmas de Programación
-**Institution:** Instituto Tecnológico de Costa Rica 
-**Semester:** 2025 - II 
 
 ---
 
@@ -64,7 +61,7 @@ The server maintains the global game state and coordinates communication between
 
 ---
 
-### 🎮 Client Setup
+### Client Setup
 
 1. **Configure the Server IP** 
    Edit `client.c` at **line 9**, replacing the placeholder with the **server’s actual IPv4 address**.
@@ -84,3 +81,7 @@ The server maintains the global game state and coordinates communication between
    ./client
    ```
 
+## Course
+CE1106 - Paradigmas de Programación 
+Instituto Tecnológico de Costa Rica  
+2025 Semester II
