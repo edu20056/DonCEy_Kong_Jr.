@@ -1,6 +1,6 @@
 # DonCEy Kong Jr.
 
-**Version:** 0.0.1 
+**Version:** 1.11.2 
 
 ---
 
@@ -41,7 +41,7 @@ The server maintains the global game state and coordinates communication between
 
 2. **Navigate to the Server Directory**
    ```bash
-   cd Server/Code
+   cd Server/Network
    ```
 
 3. **Compile the Java Server**
