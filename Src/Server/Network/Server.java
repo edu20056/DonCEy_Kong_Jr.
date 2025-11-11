@@ -1,3 +1,5 @@
+package Network;
+
 import java.io.*;
 import java.net.*;
 import java.util.*;
@@ -8,10 +10,11 @@ public class Server {
     private static final int MAX_ESPECTADORES_POR_JUGADOR = 2;
     private static final Map<String, Socket> jugadores = new HashMap<>();
     private static final Map<String, List<Socket>> espectadoresPorJugador = new HashMap<>();
+    
+    public Server() {}
 
-    public static void main(String[] args) {
+    public void iniciar() {
         new Thread(Server::iniciarServidor).start();
-        menuServidor();
     }
 
     /** ----------------------------- */
@@ -34,68 +37,107 @@ public class Server {
     /** ----------------------------- */
     /**   MENÚ INTERACTIVO SERVIDOR   */
     /** ----------------------------- */
-    private static void menuServidor() {
+    public static void menuServidor() {
         try (Scanner sc = new Scanner(System.in)) {
             while (true) {
-                System.out.println("\n====== MENÚ DEL SERVIDOR ======");
-                System.out.println("Jugadores conectados:");
-                if (jugadores.isEmpty()) {
-                    System.out.println("  (ninguno)");
-                } else {
-                    jugadores.keySet().forEach(j -> {
-                        int count = espectadoresPorJugador.getOrDefault(j, Collections.emptyList()).size();
-                        System.out.println("  - " + j + " (" + count + "/" + MAX_ESPECTADORES_POR_JUGADOR + " espectadores)");
-                    });
-                }
-
-                System.out.println("\nOpciones:");
-                System.out.println("1. Enviar mensaje a un jugador");
-                System.out.println("2. Ver espectadores de un jugador");
-                System.out.println("3. Salir");
-                System.out.print("Seleccione una opción: ");
+                mostrarMenuPrincipal();
 
                 String opcion = sc.nextLine();
 
                 switch (opcion) {
-                    case "1" -> {
-                        if (jugadores.isEmpty()) {
-                            System.out.println("No hay jugadores conectados.");
-                            break;
-                        }
-                        System.out.print("Ingrese nombre del jugador destino: ");
-                        String destino = sc.nextLine();
-
-                        Socket jugadorSocket = jugadores.get(destino);
-                        if (jugadorSocket == null) {
-                            System.out.println("Jugador no encontrado.");
-                            break;
-                        }
-
-                        System.out.print("Mensaje para " + destino + ": ");
-                        String mensaje = sc.nextLine();
-
-                        String texto = "[SERVIDOR → " + destino + "]: " + mensaje;
-                        enviarA(jugadorSocket, texto);
-                        enviarAMisEspectadores(destino, texto);
-                        System.out.println("Mensaje enviado.");
-                    }
-                    case "2" -> {
-                        System.out.print("Ingrese nombre del jugador: ");
-                        String jugador = sc.nextLine();
-                        List<Socket> espectadores = espectadoresPorJugador.get(jugador);
-                        if (espectadores == null || espectadores.isEmpty()) {
-                            System.out.println("No hay espectadores conectados a " + jugador);
-                        } else {
-                            System.out.println("Espectadores conectados a " + jugador + ": " + espectadores.size());
-                        }
-                    }
-                    case "3" -> {
-                        System.out.println("Servidor cerrado.");
-                        System.exit(0);
-                    }
+                    case "1" -> opcionEnviarMensaje(sc);
+                    case "2" -> opcionVerEspectadores(sc);
+                    case "3" -> cerrarServidor();
                     default -> System.out.println("Opción no válida.");
                 }
             }
+        }
+    }
+
+    /** ----------------------------- */
+    /**   FUNCIONES MODULARES         */
+    /** ----------------------------- */
+
+    // Muestra los jugadores y las opciones principales
+    private static void mostrarMenuPrincipal() {
+        System.out.println("\n====== MENÚ DEL SERVIDOR ======");
+        System.out.println("Jugadores conectados:");
+        if (jugadores.isEmpty()) {
+            System.out.println("  (ninguno)");
+        } else {
+            jugadores.keySet().forEach(j -> {
+                int count = espectadoresPorJugador.getOrDefault(j, Collections.emptyList()).size();
+                System.out.println("  - " + j + " (" + count + "/" + MAX_ESPECTADORES_POR_JUGADOR + " espectadores)");
+            });
+        }
+
+        System.out.println("\nOpciones:");
+        System.out.println("1. Enviar mensaje a un jugador");
+        System.out.println("2. Ver espectadores de un jugador");
+        System.out.println("3. Salir");
+        System.out.print("Seleccione una opción: ");
+    }
+
+    /** Opción 1: enviar mensaje a un jugador */
+    private static void opcionEnviarMensaje(Scanner sc) {
+        if (jugadores.isEmpty()) {
+            System.out.println("No hay jugadores conectados.");
+            return;
+        }
+
+        System.out.print("Ingrese nombre del jugador destino: ");
+        String destino = sc.nextLine();
+
+        Socket jugadorSocket = jugadores.get(destino);
+        if (jugadorSocket == null) {
+            System.out.println("Jugador no encontrado.");
+            return;
+        }
+
+        System.out.print("Mensaje para " + destino + ": ");
+        String mensaje = sc.nextLine();
+
+        enviarMensajeJugador(destino, mensaje);
+    }
+
+    /** Opción 2: ver espectadores de un jugador */
+    private static void opcionVerEspectadores(Scanner sc) {
+        System.out.print("Ingrese nombre del jugador: ");
+        String jugador = sc.nextLine();
+        mostrarEspectadoresDe(jugador);
+    }
+
+    /** Opción 3: cerrar servidor */
+    private static void cerrarServidor() {
+        System.out.println("Servidor cerrado.");
+        System.exit(0);
+    }
+
+    /** ----------------------------- */
+    /**   FUNCIONES REUTILIZABLES     */
+    /** ----------------------------- */
+
+    // Enviar mensaje a jugador y sus espectadores
+    public static void enviarMensajeJugador(String jugador, String mensaje) {
+        Socket jugadorSocket = jugadores.get(jugador);
+        if (jugadorSocket == null) {
+            System.out.println("Jugador no encontrado: " + jugador);
+            return;
+        }
+
+        String texto = "[SERVIDOR → " + jugador + "]: " + mensaje;
+        enviarA(jugadorSocket, texto);
+        enviarAMisEspectadores(jugador, texto);
+        System.out.println("Mensaje enviado a " + jugador);
+    }
+
+    // Mostrar espectadores conectados a un jugador
+    public static void mostrarEspectadoresDe(String jugador) {
+        List<Socket> espectadores = espectadoresPorJugador.get(jugador);
+        if (espectadores == null || espectadores.isEmpty()) {
+            System.out.println("No hay espectadores conectados a " + jugador);
+        } else {
+            System.out.println("Espectadores conectados a " + jugador + ": " + espectadores.size());
         }
     }
 
