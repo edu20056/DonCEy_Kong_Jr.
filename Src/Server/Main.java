@@ -5,7 +5,7 @@ import Physics.CollisionSystem;
 import Physics.GravitySystem;
 import Utils.Coords;
 
-public class main {
+public class Main {
 
     public static void renderWorld(World world, Player player) {
         Coords playerPos = player.getPosition();
