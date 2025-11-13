@@ -19,10 +19,6 @@ SDL_Surface *message = NULL;
 SDL_Texture *text = NULL;
 SDL_Surface *points = NULL;
 SDL_Texture *pointsTexture = NULL;
-// Variables globales para control de sonido
-int isClimbingSoundPlaying = 0;
-int lastMovementSoundTime = 0;
-int soundCooldown = 100; // ms entre sonidos de movimiento
 
 
 
@@ -696,19 +692,16 @@ bool checkCollision(SDL_Rect a, SDL_Rect b){
     return true;
 }
 
-
-
 int processEvents(SDL_Window *window, GameState *game) {
     SDL_Event event;
     int done = 0;
-    static Uint32 lastSoundTime = 0;
-    static int wasJumping = 0; // Variable local para tracking de salto
 
     // Obtener el estado actual del teclado para movimientos continuos
     const Uint8 *state = SDL_GetKeyboardState(NULL);
 
     while (SDL_PollEvent(&event)) {
         switch (event.type) {
+
             case SDL_WINDOWEVENT_CLOSE:
                 if (window) {
                     SDL_DestroyWindow(window);
@@ -722,52 +715,24 @@ int processEvents(SDL_Window *window, GameState *game) {
                     case SDLK_ESCAPE:
                         done = 1;
                         break;
-
                     case SDLK_UP:
                         if (game->player.onLedge) {
                             Mix_PlayChannel(-1, jumpSound, 0);
-                            game->player.dy = -10; // Salto más consistente
+                            game->player.dy = -8;
                             game->player.onLedge = 0;
-                            wasJumping = 1; // Marcar que estaba saltando
                         } else if (game->player.onLiana) {
-                            game->player.dy = -3; // Velocidad más suave para escalar
-                            game->player.onLiana = 1;
+                            Mix_PlayChannel(-1, climb, 0);
+                            game->player.dy = -10;
+                            game->player.onLiana = 0;
                         }
                         break;
-
                     case SDLK_DOWN:
                         if (game->player.onLiana) {
-                            game->player.dy = 3; // Velocidad más suave para bajar
-                            game->player.onLiana = 1;
-                        } else if (game->player.onLedge) {
-                            // Permitir bajar de plataformas
-                            game->player.dy = 2;
+                            Mix_PlayChannel(-1, climb, 0);
+                            game->player.dy = 8;
+                            game->player.onLiana = 0;
                         }
                         break;
-                        
-                    case SDLK_SPACE:
-                        // Salto alternativo con espacio
-                        if (game->player.onLedge) {
-                            Mix_PlayChannel(-1, jumpSound, 0);
-                            game->player.dy = -10;
-                            game->player.onLedge = 0;
-                            wasJumping = 1;
-                        }
-                        break;
-                }
-                break;
-
-            case SDL_KEYUP:
-                // Detener movimiento vertical al soltar teclas en lianas
-                if ((event.key.keysym.sym == SDLK_UP || event.key.keysym.sym == SDLK_DOWN) && 
-                    game->player.onLiana) {
-                    game->player.dy = 0;
-                    
-                    // Detener sonido de escalada al soltar teclas
-                    if (isClimbingSoundPlaying) {
-                        Mix_HaltChannel(-1);
-                        isClimbingSoundPlaying = 0;
-                    }
                 }
                 break;
 
@@ -783,8 +748,8 @@ int processEvents(SDL_Window *window, GameState *game) {
                     // Botón Play
                     if (playGame_btn(game, mouseX, mouseY)) {
                         game->windowPage = 1;
-                        if (opening) Mix_FreeMusic(opening);
-                        if (backgroundSound) Mix_PlayMusic(backgroundSound, -1);
+                        Mix_FreeMusic(opening);
+                        Mix_PlayMusic(backgroundSound, -1);
                     }
 
                     // Botón Exit
@@ -798,129 +763,51 @@ int processEvents(SDL_Window *window, GameState *game) {
     }
 
     // -------------------------------
-    // MOVIMIENTO MEJORADO Y SUAVE
+    // Movimiento continuo con teclado - VELOCIDAD CONSTANTE
     // -------------------------------
     
-    // Variables para movimiento suave
-    float targetSpeed = 5.0f;           // Velocidad objetivo
-    float acceleration = 0.4f;          // Aceleración suave
-    float deceleration = 0.3f;          // Desaceleración suave
-    float airControl = 0.2f;            // Control en el aire reducido
-    Uint32 currentTime = SDL_GetTicks();
+    // Variables para velocidad constante
+    float constantSpeed = 4.0f;  // Velocidad constante horizontal
+    float jumpBoost = 0.15f;     // Pequeño boost adicional al saltar
     
-    // Determinar si está en el suelo (usando onLedge como indicador)
-    int isGrounded = game->player.onLedge;
-    
-    // Control actual basado en si está en el aire o no
-    float currentAccel = isGrounded ? acceleration : acceleration * airControl;
-    float currentDecel = isGrounded ? deceleration : deceleration * airControl;
+    // Salto más alto manteniendo la tecla (opcional, puedes quitarlo si quieres)
+    if (state[SDL_SCANCODE_UP] && !game->player.onLedge && !game->player.onLiana) {
+        game->player.dy -= jumpBoost;
+    }
 
-    // MOVIMIENTO HORIZONTAL CON ACELERACIÓN/DECELERACIÓN SUAVE
+    // MOVIMIENTO HORIZONTAL CONSTANTE
     if (state[SDL_SCANCODE_LEFT]) {
-        if (game->player.dx > -targetSpeed) {
-            game->player.dx -= currentAccel;
-            if (game->player.dx < -targetSpeed) game->player.dx = -targetSpeed;
-        }
+        game->player.dx = -constantSpeed;  // Velocidad constante hacia izquierda
         game->player.facingLeft = 1;
+        game->player.slowingDown = 0;
         
-    } else if (state[SDL_SCANCODE_RIGHT]) {
-        if (game->player.dx < targetSpeed) {
-            game->player.dx += currentAccel;
-            if (game->player.dx > targetSpeed) game->player.dx = targetSpeed;
-        }
-        game->player.facingLeft = 0;
-        
-    } else {
-        // Desaceleración suave cuando no se presionan teclas
-        if (game->player.dx > 0) {
-            game->player.dx -= currentDecel;
-            if (game->player.dx < 0) game->player.dx = 0;
-        } else if (game->player.dx < 0) {
-            game->player.dx += currentDecel;
-            if (game->player.dx > 0) game->player.dx = 0;
-        }
-    }
-
-    // MOVIMIENTO VERTICAL EN LIANAS (continuo)
-    if (game->player.onLiana) {
-        if (state[SDL_SCANCODE_UP]) {
-            game->player.dy = -3;
-            
-            if (currentTime - lastSoundTime > soundCooldown && !isClimbingSoundPlaying) {
-                Mix_PlayChannel(-1, climb, 0);
-                lastSoundTime = currentTime;
-                isClimbingSoundPlaying = 1;
-            }
-        } else if (state[SDL_SCANCODE_DOWN]) {
-            game->player.dy = 3;
-            
-            if (currentTime - lastSoundTime > soundCooldown && !isClimbingSoundPlaying) {
-                Mix_PlayChannel(-1, climb, 0);
-                lastSoundTime = currentTime;
-                isClimbingSoundPlaying = 1;
-            }
-        } else {
-            
-            if (isClimbingSoundPlaying) {
-                Mix_HaltChannel(-1);
-                isClimbingSoundPlaying = 0;
-            }
-        }
-    } else {
-        
-        if (isClimbingSoundPlaying) {
-            Mix_HaltChannel(-1);
-            isClimbingSoundPlaying = 0;
-        }
-    }
-
-    // ANIMACIONES MEJORADAS
-    if ((state[SDL_SCANCODE_LEFT] || state[SDL_SCANCODE_RIGHT]) && game->player.onLedge) {
-        
-        if(currentTime % 6 == 0) { 
+        // Animación mientras se mueve
+        if(game->time % 8 == 0){
             game->player.animFrame = !game->player.animFrame;
         }
-    } else {
         
+    } else if (state[SDL_SCANCODE_RIGHT]) {
+        game->player.dx = constantSpeed;   // Velocidad constante hacia derecha
+        game->player.facingLeft = 0;
+        game->player.slowingDown = 0;
+        
+        // Animación mientras se mueve
+        if(game->time % 8 == 0){
+            game->player.animFrame = !game->player.animFrame;
+        }
+        
+    } else {
+        // Desaceleración cuando no se presionan teclas de movimiento
         game->player.animFrame = 0;
+        game->player.dx *= 0.8f;
+        game->player.slowingDown = 1;
+        if (fabsf(game->player.dx) < 0.1f) {
+            game->player.dx = 0;
+        }
     }
-
-    
-    int isJumpingNow = !game->player.onLedge && !game->player.onLiana && game->player.dy < 0;
-    if (isJumpingNow && !wasJumping) {
-        Mix_PlayChannel(-1, jumpSound, 0);
-    }
-    wasJumping = isJumpingNow;
 
     return done;
 }
-
-
-int isPlayerMoving(GameState *game) {
-    return (fabsf(game->player.dx) > 0.1f || fabsf(game->player.dy) > 0.1f);
-}
-
-
-int playGame_btn(GameState *game, int mouseX, int mouseY){
-    int playXLeft = 12 * 8 * game->sizeMult;
-    int playXRight = 19 * 8 * game->sizeMult;
-    int playYUp = 248 * game->sizeMult - 21 * 8 * game->sizeMult;
-    int playYDown = 248 * game->sizeMult - 17 * 8 * game->sizeMult;
-
-    return (mouseX >= playXLeft && mouseX <= playXRight && 
-            mouseY >= playYUp && mouseY <= playYDown);
-}
-
-int exitGame_btn(GameState *game, int mouseX, int mouseY){
-    int exitXLeft = 12 * 8 * game->sizeMult;
-    int exitXRight = 19 * 8 * game->sizeMult;
-    int exitYUp = 248 * game->sizeMult - 16 * 8 * game->sizeMult; // Corregido según tu código original
-    int exitYDown = 248 * game->sizeMult - 11 * 8 * game->sizeMult; // Corregido
-
-    return (mouseX >= exitXLeft && mouseX <= exitXRight && 
-            mouseY >= exitYUp && mouseY <= exitYDown);
-}
-
 int playGame_btn(GameState *game, int mouseX, int mouseY){
     int playXLeft = 12*8*game->sizeMult;
     int playXRight = 19*8*game->sizeMult;
