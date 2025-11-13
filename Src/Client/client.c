@@ -1,9 +1,11 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
+#include <stdlib.h>
 #include <unistd.h>
-#include <arpa/inet.h>
 #include <sys/select.h>
+#include <termios.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
 
 #define BUFFER_SIZE 1024
 #define SERVER_IP "127.0.0.1"    
@@ -14,6 +16,29 @@ void trim_newline(char *str) {
     while (len > 0 && (str[len - 1] == '\n' || str[len - 1] == '\r')) {
         str[--len] = '\0';
     }
+}
+
+// Funciones para modo sin buffer
+void set_input_mode(void) {
+    struct termios tattr;
+
+    // Obtener configuración actual
+    tcgetattr(STDIN_FILENO, &tattr);
+
+    // Desactivar modo canónico y eco (no requiere Enter ni muestra las teclas)
+    tattr.c_lflag &= ~(ICANON | ECHO);
+    tattr.c_cc[VMIN] = 1;
+    tattr.c_cc[VTIME] = 0;
+
+    // Aplicar configuración
+    tcsetattr(STDIN_FILENO, TCSANOW, &tattr);
+}
+
+void reset_input_mode(void) {
+    struct termios tattr;
+    tcgetattr(STDIN_FILENO, &tattr);
+    tattr.c_lflag |= ICANON | ECHO;
+    tcsetattr(STDIN_FILENO, TCSANOW, &tattr);
 }
 
 int main() {
@@ -109,86 +134,92 @@ int main() {
         printf("Esperando confirmación del servidor...\n");
         
         // Leer toda la respuesta del servidor
-        while (1) {
-            ssize_t bytes = recv(sock, buffer, sizeof(buffer) - 1, 0);
-            if (bytes <= 0) {
-                printf("Error del servidor o conexión cerrada\n");
-                close(sock);
-                return 1;
-            }
-            buffer[bytes] = '\0';
-            
-            printf("Servidor: %s", buffer);
-            
-            // Si recibimos un error, salir
-            if (strstr(buffer, "ERROR") != NULL) {
-                printf("Error al registrarse. Saliendo...\n");
-                close(sock);
-                return 1;
-            }
-            
-            // Si recibimos el mensaje de confirmación, continuar
-            if (strstr(buffer, "OK:") != NULL || strstr(buffer, "Puede comenzar") != NULL) {
-                break;
-            }
-        }
-        
-        printf("\n=== Modo Jugador activado ===\n");
-        printf("Puede escribir mensajes. (Escriba 'quit' para salir)\n");
-        printf("> ");
-        fflush(stdout);
-        
-        fd_set readfds;
-        
-        while (1) {
-            FD_ZERO(&readfds);
-            FD_SET(sock, &readfds);
-            FD_SET(STDIN_FILENO, &readfds);
-
-            int max_fd = (sock > STDIN_FILENO) ? sock : STDIN_FILENO;
-            int activity = select(max_fd + 1, &readfds, NULL, NULL, NULL);
-
-            if (activity < 0) {
-                perror("Error en select");
-                break;
-            }
-
-            // Mensaje del servidor
-            if (FD_ISSET(sock, &readfds)) {
+            while (1) {
                 ssize_t bytes = recv(sock, buffer, sizeof(buffer) - 1, 0);
                 if (bytes <= 0) {
-                    printf("\nServidor desconectado.\n");
-                    break;
+                    printf("Error del servidor o conexión cerrada\n");
+                    close(sock);
+                    return 1;
                 }
                 buffer[bytes] = '\0';
-                printf("\n%s\n> ", buffer);
-                fflush(stdout);
-            }
-
-            // Entrada del usuario
-            if (FD_ISSET(STDIN_FILENO, &readfds)) {
-                if (fgets(buffer, sizeof(buffer), stdin) != NULL) {
-                    trim_newline(buffer);
-                    
-                    if (strlen(buffer) == 0) {
-                        printf("> ");
-                        continue;
-                    }
-                    
-                    if (strcmp(buffer, "quit") == 0) {
-                        printf("Saliendo...\n");
-                        break;
-                    }
-
-                    // Enviar mensaje con newline
-                    char mensaje_con_newline[BUFFER_SIZE * 2];
-                    snprintf(mensaje_con_newline, sizeof(mensaje_con_newline), "%s\n", buffer);
-                    send(sock, mensaje_con_newline, strlen(mensaje_con_newline), 0);
-                    printf("> ");
-                    fflush(stdout);
+                
+                printf("Servidor: %s", buffer);
+                
+                // Si recibimos un error, salir
+                if (strstr(buffer, "ERROR") != NULL) {
+                    printf("Error al registrarse. Saliendo...\n");
+                    close(sock);
+                    return 1;
+                }
+                
+                // Si recibimos el mensaje de confirmación, continuar
+                if (strstr(buffer, "OK:") != NULL || strstr(buffer, "Puede comenzar") != NULL) {
+                    break;
                 }
             }
-        }
+            
+            printf("Use las teclas W, A, S, D para moverse. (Escriba 'quit' para salir)\n");
+            printf("> ");
+            fflush(stdout);
+
+            set_input_mode();
+
+            fd_set readfds;
+
+            while (1) {
+                FD_ZERO(&readfds);
+                FD_SET(sock, &readfds);
+                FD_SET(STDIN_FILENO, &readfds);
+
+                int max_fd = (sock > STDIN_FILENO) ? sock : STDIN_FILENO;
+                int activity = select(max_fd + 1, &readfds, NULL, NULL, NULL);
+
+                if (activity < 0) {
+                    perror("Error en select");
+                    break;
+                }
+
+                // Mensaje del servidor
+                if (FD_ISSET(sock, &readfds)) {
+                    ssize_t bytes = recv(sock, buffer, sizeof(buffer) - 1, 0);
+                    if (bytes <= 0) {
+                        printf("\nServidor desconectado.\n");
+                        break;
+                    }
+                    buffer[bytes] = '\0';
+                    printf("\n%s\n> ", buffer);
+                    fflush(stdout);
+                }
+
+                // Lectura de tecla (sin Enter)
+                if (FD_ISSET(STDIN_FILENO, &readfds)) {
+                    char tecla;
+                    ssize_t bytes = read(STDIN_FILENO, &tecla, 1);
+                    if (bytes <= 0) continue;
+
+                    char msg[4] = {0};
+
+                    switch (tecla) {
+                        case 'w': case 'W': strcpy(msg, "1"); break;
+                        case 'd': case 'D': strcpy(msg, "2"); break;
+                        case 's': case 'S': strcpy(msg, "3"); break;
+                        case 'a': case 'A': strcpy(msg, "4"); break;
+                        case 'q': case 'Q':
+                            printf("Saliendo...\n");
+                            reset_input_mode(); // restaurar terminal
+                            close(sock);
+                            return 0;
+                        default:
+                            continue; // Ignorar otras teclas
+                    }
+
+                    strcat(msg, "\n");
+                    send(sock, msg, strlen(msg), 0);
+                }
+            }
+
+    // Restaurar modo normal al salir
+    reset_input_mode();
     } else {
         // Modo espectador - VERSIÓN SIMPLIFICADA
         printf("Modo espectador seleccionado.\n");

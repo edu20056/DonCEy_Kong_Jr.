@@ -31,7 +31,24 @@ public class Main {
             String mensaje = servidor.mensajes_j1.remove(0); // Obtener y remover el primer mensaje
             Socket s1 = servidor.getSocketJugador(servidor.J1_NAME);
             if (s1 != null) {
-                String map1 = "Mapa1 para: " + mensaje;
+                String map1 = "";
+                int movimiento = Integer.parseInt(mensaje);
+                switch (movimiento) {
+                    case 1:
+                        map1 = "Jugador 1 se movio arriba";
+                        break;
+                    case 2:
+                        map1 = "Jugador 1 se movia hacia derecha";
+                        break;
+                    case 3:
+                        map1 = "Jugador 1 se movio abajo";
+                        break;
+                    case 4:
+                        map1 = "Jugador 1 se movio hacia izquierda";
+                        break;
+                    default:
+                        break;
+                }
                 servidor.enviarA(s1, map1);
                 servidor.enviarAMisEspectadores(servidor.J1_NAME, map1);
                 System.out.println("✓ Mensaje de J1 procesado: " + mensaje);
@@ -43,7 +60,24 @@ public class Main {
             String mensaje = servidor.mensajes_j2.remove(0); // Obtener y remover el primer mensaje
             Socket s2 = servidor.getSocketJugador(servidor.J2_NAME);
             if (s2 != null) {
-                String map2 = "Mapa2 para: " + mensaje;
+                String map2 = "";
+                int movimiento = Integer.parseInt(mensaje);
+                switch (movimiento) {
+                    case 1:
+                        map2 = "Jugador 2 se movio arriba";
+                        break;
+                    case 2:
+                        map2 = "Jugador 2 se movia hacia derecha";
+                        break;
+                    case 3:
+                        map2 = "Jugador 2 se movio abajo";
+                        break;
+                    case 4:
+                        map2 = "Jugador 2 se movio hacia izquierda";
+                        break;
+                    default:
+                        break;
+                }
                 servidor.enviarA(s2, map2);
                 servidor.enviarAMisEspectadores(servidor.J2_NAME, map2);
                 System.out.println("✓ Mensaje de J2 procesado: " + mensaje);
@@ -59,7 +93,7 @@ public class Main {
                 String opcion = sc.nextLine();
 
                 switch (opcion) {
-                    case "1" -> servidor.opcionEnviarMensaje(sc);
+                    case "1" -> servidor.opcionEnviarMensaje(sc); // Esto debe cambiarse para poder modicar matriz con una funcion y luego enviar mensaje de matriz 
                     case "2" -> {
                         servidor.cerrarServidor();
                         return; // Salir del método
