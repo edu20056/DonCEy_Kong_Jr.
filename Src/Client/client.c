@@ -89,12 +89,17 @@ int main() {
             return 1;
         }
         trim_newline(nombre);
-        snprintf(sendbuf, sizeof(sendbuf), "PLAYER %s\n", nombre); // AÑADIDO \n
-    } else {
+        snprintf(sendbuf, sizeof(sendbuf), "PLAYER %s\n", nombre);
+    } 
+    else if (strcmp(tipo, "2") == 0) {
         esJugador = 0;
-        snprintf(sendbuf, sizeof(sendbuf), "SPECTATOR\n"); // AÑADIDO \n
+        snprintf(sendbuf, sizeof(sendbuf), "SPECTATOR\n");
+    } 
+    else {
+        printf("Opción inválida. Debe ingresar 1 (Jugador) o 2 (Espectador).\n");
+        close(sock);
+        return 1;
     }
-
     // Enviar tipo de cliente al servidor
     printf("Enviando tipo de cliente al servidor: %s", sendbuf);
     send(sock, sendbuf, strlen(sendbuf), 0);

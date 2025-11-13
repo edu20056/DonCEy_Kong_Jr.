@@ -60,8 +60,7 @@ public class Server {
 
         System.out.println("\nOpciones:");
         System.out.println("1. Enviar mensaje a un jugador");
-        System.out.println("2. Ver espectadores de un jugador");
-        System.out.println("3. Salir");
+        System.out.println("2. Salir");
         System.out.print("Seleccione una opción: ");
     }
 
@@ -242,11 +241,6 @@ public class Server {
                 else { // jugador asociado es jugador 2
                     mensajes_j2.add(msg);
                 }
-                // Reenviar mensaje al propio jugador (confirmación)
-                // enviarA(jugadores.get(jugadorAsociado), "[Tú]: " + mensajeProcesado);
-
-                // Reenviar mensaje a sus espectadores
-                // enviarAMisEspectadores(jugadorAsociado, "[" + jugadorAsociado + "]: " + mensajeProcesado);
             }
         }
 
