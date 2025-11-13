@@ -72,20 +72,38 @@ public class Server {
             return;
         }
 
-        System.out.print("Ingrese nombre del jugador destino: ");
-        String destino = sc.nextLine();
+        // Mostrar jugadores con índices
+        System.out.println("Jugadores conectados:");
+        int i = 1;
+        List<String> nombres = new ArrayList<>(jugadores.keySet());
+        for (String nombre : nombres) {
+            System.out.println(i + ". " + nombre);
+            i++;
+        }
 
-        Socket jugadorSocket = jugadores.get(destino);
-        if (jugadorSocket == null) {
-            System.out.println("Jugador no encontrado.");
+        // Pedir número del jugador destino
+        System.out.print("Seleccione el número del jugador destino: ");
+        int opcion;
+        try {
+            opcion = Integer.parseInt(sc.nextLine());
+        } catch (NumberFormatException e) {
+            System.out.println("Entrada no válida.");
             return;
         }
+
+        if (opcion < 1 || opcion > nombres.size()) {
+            System.out.println("Número fuera de rango.");
+            return;
+        }
+
+        String destino = nombres.get(opcion - 1);
 
         System.out.print("Mensaje para " + destino + ": ");
         String mensaje = sc.nextLine();
 
         enviarMensajeJugador(destino, mensaje);
     }
+
 
     /** Opción 2: ver espectadores de un jugador */
     public void opcionVerEspectadores(Scanner sc) {
@@ -244,32 +262,44 @@ public class Server {
                 return;
             }
 
+            // Mostrar lista numerada de jugadores
             out.println("Jugadores disponibles:");
-            for (String jugador : jugadores.keySet()) {
+            List<String> nombres = new ArrayList<>(jugadores.keySet());
+            for (int i = 0; i < nombres.size(); i++) {
+                String jugador = nombres.get(i);
                 List<Socket> espectadores = espectadoresPorJugador.get(jugador);
                 int numEspectadores = (espectadores != null) ? espectadores.size() : 0;
-                out.println("- " + jugador + " (" + numEspectadores + "/" + MAX_ESPECTADORES_POR_JUGADOR + " espectadores)");
+                out.println((i + 1) + ". " + jugador + " (" + numEspectadores + "/" + MAX_ESPECTADORES_POR_JUGADOR + " espectadores)");
             }
             out.println("END_PLAYERS_LIST");
-            out.println("Por favor, escriba el nombre exacto del jugador que desea espectear:");
+            out.println("Por favor, escriba el número del jugador que desea espectear:");
             out.flush();
 
-            String elegido = in.readLine();
-            if (elegido == null) {
-                socket.close();
-                return;
-            }
-            elegido = elegido.trim();
-
-            // Verificar si el jugador existe
-            if (!jugadores.containsKey(elegido)) {
-                out.println("ERROR: Jugador '" + elegido + "' no encontrado.");
-                out.println("Conexión cerrada.");
+            // Leer número del jugador elegido
+            String input = in.readLine();
+            if (input == null) {
                 socket.close();
                 return;
             }
 
-            // VALIDACIÓN: Verificar límite de espectadores para este jugador
+            int indiceElegido;
+            try {
+                indiceElegido = Integer.parseInt(input.trim()) - 1;
+            } catch (NumberFormatException e) {
+                out.println("ERROR: Debe ingresar un número válido.");
+                socket.close();
+                return;
+            }
+
+            if (indiceElegido < 0 || indiceElegido >= nombres.size()) {
+                out.println("ERROR: Número fuera de rango.");
+                socket.close();
+                return;
+            }
+
+            String elegido = nombres.get(indiceElegido);
+
+            // VALIDACIÓN: Verificar límite de espectadores
             List<Socket> espectadoresActuales = espectadoresPorJugador.get(elegido);
             if (espectadoresActuales != null && espectadoresActuales.size() >= MAX_ESPECTADORES_POR_JUGADOR) {
                 out.println("ERROR: El jugador " + elegido + " ya tiene el máximo de " + MAX_ESPECTADORES_POR_JUGADOR + " espectadores.");
@@ -280,7 +310,7 @@ public class Server {
 
             jugadorAsociado = elegido;
             espectadoresPorJugador.putIfAbsent(jugadorAsociado, new ArrayList<>());
-            
+
             // Agregar este socket a la lista de espectadores
             synchronized (espectadoresPorJugador) {
                 espectadoresPorJugador.get(jugadorAsociado).add(socket);
@@ -289,22 +319,19 @@ public class Server {
             out.println("OK: Conectado como espectador de " + jugadorAsociado);
             out.println("=== Ahora recibirá todos los mensajes de " + jugadorAsociado + " ===");
             out.flush();
-            System.out.println("Nuevo espectador conectado a " + jugadorAsociado + 
-                             " (Total: " + espectadoresPorJugador.get(jugadorAsociado).size() + 
-                             "/" + MAX_ESPECTADORES_POR_JUGADOR + ")");
 
-            // El espectador ahora escucha mensajes continuamente
+            System.out.println("Nuevo espectador conectado a " + jugadorAsociado +
+                    " (Total: " + espectadoresPorJugador.get(jugadorAsociado).size() +
+                    "/" + MAX_ESPECTADORES_POR_JUGADOR + ")");
+
+            // El espectador no envía mensajes
             try {
                 while (true) {
                     String mensaje = in.readLine();
-                    if (mensaje == null) {
-                        break; // Conexión cerrada
-                    }
-                    // Los espectadores no envían mensajes, solo reciben
-                    // Ignorar cualquier mensaje que envíen
+                    if (mensaje == null) break; // conexión cerrada
                 }
             } catch (IOException e) {
-                // Conexión cerrada
+                // Ignorar cierre
             }
         }
 
