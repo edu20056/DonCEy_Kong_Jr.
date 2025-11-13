@@ -8,19 +8,26 @@ public class Server {
     private static final int PORT = 5000;
     private static final int MAX_JUGADORES = 2;
     private static final int MAX_ESPECTADORES_POR_JUGADOR = 2;
-    private static final Map<String, Socket> jugadores = new HashMap<>();
-    private static final Map<String, List<Socket>> espectadoresPorJugador = new HashMap<>();
-    
+    private final Map<String, Socket> jugadores = new HashMap<>();
+    private final Map<String, List<Socket>> espectadoresPorJugador = new HashMap<>();
+    public String J1_NAME = "";
+    public String J2_NAME = "";
+    public final List<String> mensajes_j1 = new ArrayList<>();
+    public final List<String> mensajes_j2 = new ArrayList<>();
+
+        
     public Server() {}
 
     public void iniciar() {
-        new Thread(Server::iniciarServidor).start();
+        new Thread(() -> this.iniciarServidor()).start();
+        // o más simple:
+        new Thread(this::iniciarServidor).start();
     }
 
     /** ----------------------------- */
     /**         INICIO SERVIDOR       */
     /** ----------------------------- */
-    private static void iniciarServidor() {
+    private void iniciarServidor() {
         try (ServerSocket serverSocket = new ServerSocket(PORT)) {
             System.out.println("Servidor iniciado en el puerto " + PORT);
             System.out.println("Límites: " + MAX_JUGADORES + " jugadores, " + MAX_ESPECTADORES_POR_JUGADOR + " espectadores por jugador");
@@ -35,31 +42,11 @@ public class Server {
     }
 
     /** ----------------------------- */
-    /**   MENÚ INTERACTIVO SERVIDOR   */
-    /** ----------------------------- */
-    public static void menuServidor() {
-        try (Scanner sc = new Scanner(System.in)) {
-            while (true) {
-                mostrarMenuPrincipal();
-
-                String opcion = sc.nextLine();
-
-                switch (opcion) {
-                    case "1" -> opcionEnviarMensaje(sc);
-                    case "2" -> opcionVerEspectadores(sc);
-                    case "3" -> cerrarServidor();
-                    default -> System.out.println("Opción no válida.");
-                }
-            }
-        }
-    }
-
-    /** ----------------------------- */
     /**   FUNCIONES MODULARES         */
     /** ----------------------------- */
 
     // Muestra los jugadores y las opciones principales
-    private static void mostrarMenuPrincipal() {
+    public void mostrarMenuPrincipal() {
         System.out.println("\n====== MENÚ DEL SERVIDOR ======");
         System.out.println("Jugadores conectados:");
         if (jugadores.isEmpty()) {
@@ -79,7 +66,7 @@ public class Server {
     }
 
     /** Opción 1: enviar mensaje a un jugador */
-    private static void opcionEnviarMensaje(Scanner sc) {
+    public void opcionEnviarMensaje(Scanner sc) {
         if (jugadores.isEmpty()) {
             System.out.println("No hay jugadores conectados.");
             return;
@@ -101,14 +88,14 @@ public class Server {
     }
 
     /** Opción 2: ver espectadores de un jugador */
-    private static void opcionVerEspectadores(Scanner sc) {
+    public void opcionVerEspectadores(Scanner sc) {
         System.out.print("Ingrese nombre del jugador: ");
         String jugador = sc.nextLine();
         mostrarEspectadoresDe(jugador);
     }
 
     /** Opción 3: cerrar servidor */
-    private static void cerrarServidor() {
+    public void cerrarServidor() {
         System.out.println("Servidor cerrado.");
         System.exit(0);
     }
@@ -118,7 +105,7 @@ public class Server {
     /** ----------------------------- */
 
     // Enviar mensaje a jugador y sus espectadores
-    public static void enviarMensajeJugador(String jugador, String mensaje) {
+    public void enviarMensajeJugador(String jugador, String mensaje) {
         Socket jugadorSocket = jugadores.get(jugador);
         if (jugadorSocket == null) {
             System.out.println("Jugador no encontrado: " + jugador);
@@ -132,7 +119,7 @@ public class Server {
     }
 
     // Mostrar espectadores conectados a un jugador
-    public static void mostrarEspectadoresDe(String jugador) {
+    public void mostrarEspectadoresDe(String jugador) {
         List<Socket> espectadores = espectadoresPorJugador.get(jugador);
         if (espectadores == null || espectadores.isEmpty()) {
             System.out.println("No hay espectadores conectados a " + jugador);
@@ -144,7 +131,7 @@ public class Server {
     /** ----------------------------- */
     /**     CLASE CLIENT HANDLER      */
     /** ----------------------------- */
-    static class ClientHandler implements Runnable {
+    class ClientHandler implements Runnable {
         private final Socket socket;
         private BufferedReader in;
         private PrintWriter out;
@@ -191,6 +178,15 @@ public class Server {
                         return;
                     }
                     
+                    // Jugador entrante es jugador 1
+                    if (jugadores.size() == 0) { 
+                        J1_NAME = jugadorAsociado;
+                    }
+
+                    else {
+                        J2_NAME = jugadorAsociado;
+                    }
+
                     jugadores.put(jugadorAsociado, socket);
                     espectadoresPorJugador.putIfAbsent(jugadorAsociado, new ArrayList<>());
                     out.println("OK: Jugador registrado como: " + jugadorAsociado);
@@ -220,14 +216,19 @@ public class Server {
         private void manejarJugador() throws IOException {
             String msg;
             while ((msg = in.readLine()) != null) {
-                String mensajeProcesado = procesarMensaje(jugadorAsociado, msg);
-                System.out.println("[" + jugadorAsociado + "]: " + mensajeProcesado);
-
+                System.out.println("[" + jugadorAsociado + "]: " + msg);
+                // Jugador asociado es jugador 1
+                if (jugadorAsociado == J1_NAME) {
+                    mensajes_j1.add(msg);
+                }
+                else { // jugador asociado es jugador 2
+                    mensajes_j2.add(msg);
+                }
                 // Reenviar mensaje al propio jugador (confirmación)
-                enviarA(jugadores.get(jugadorAsociado), "[Tú]: " + mensajeProcesado);
+                // enviarA(jugadores.get(jugadorAsociado), "[Tú]: " + mensajeProcesado);
 
                 // Reenviar mensaje a sus espectadores
-                enviarAMisEspectadores(jugadorAsociado, "[" + jugadorAsociado + "]: " + mensajeProcesado);
+                // enviarAMisEspectadores(jugadorAsociado, "[" + jugadorAsociado + "]: " + mensajeProcesado);
             }
         }
 
@@ -343,7 +344,7 @@ public class Server {
     /** ----------------------------- */
     /**     MÉTODOS AUXILIARES        */
     /** ----------------------------- */
-    private static void enviarAMisEspectadores(String jugador, String mensaje) {
+    public void enviarAMisEspectadores(String jugador, String mensaje) {
         List<Socket> espectadores = espectadoresPorJugador.get(jugador);
         if (espectadores == null) return;
 
@@ -357,7 +358,7 @@ public class Server {
         }
     }
 
-    private static void enviarA(Socket s, String mensaje) {
+    public void enviarA(Socket s, String mensaje) {
         try {
             PrintWriter pw = new PrintWriter(s.getOutputStream(), true);
             pw.println(mensaje);
@@ -366,7 +367,9 @@ public class Server {
         }
     }
 
-    private static String procesarMensaje(String jugador, String original) {
-        return original.trim();
+    // Obtener Socket por nombre
+    public Socket getSocketJugador(String nombreJugador) {
+        return jugadores.get(nombreJugador);
     }
+
 }

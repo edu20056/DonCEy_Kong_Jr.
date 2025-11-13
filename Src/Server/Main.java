@@ -1,81 +1,72 @@
-import World.TileType;
-import World.World;
-import Entities.Player;
-import Physics.CollisionSystem;
-import Physics.GravitySystem;
-import Utils.Coords;
+import java.net.Socket;
+import java.util.Scanner;
 import Network.Server;
 
 public class Main {
-
-    public static void renderWorld(World world, Player player) {
-        Coords playerPos = player.getPosition();
-        
-        for (int y = 0; y < world.getHeight(); y++) {
-            for (int x = 0; x < world.getWidth(); x++) {
-                Coords currentPos = new Coords(x, y);
-                
-                if (playerPos.getX() == x && playerPos.getY() == y) {
-                    if (player.isFacingRight()) {
-                        System.out.print("→");
-                    } else {
-                        System.out.print("←");
-                    }
-                } else {
-                    TileType tile = world.getTile(currentPos);
-                    switch (tile) {
-                        case EMPTY:
-                            System.out.print(" ");
-                            break;
-                        case VINE:
-                            System.out.print("H");
-                            break;
-                        case PLATFORM:
-                            System.out.print("=");
-                            break;
-                        case WATER:
-                            System.out.print("~");
-                            break;
-                        case GOAL:
-                            System.out.print("X");
-                            break;
-                        default:
-                            System.out.print("?");
-                    }
-                }
-            }
-            System.out.println();
-        }
-        
-        System.out.println();
-        System.out.println("Posición: (" + playerPos.getX() + ", " + playerPos.getY() + ")");
-        System.out.println("Dirección: " + (player.isFacingRight() ? "DERECHA" : "IZQUIERDA"));
-        System.out.println("En suelo: " + (player.isOnGround() ? "SÍ" : "NO"));
-        System.out.println("En liana: " + (player.isOnVine() ? "SÍ" : "NO"));
-        System.out.println("Trepando: " + (player.isClimbing() ? "SÍ" : "NO"));
-    }
-
+    
     public static void main(String[] args) {
-
         Server servidor = new Server();
         servidor.iniciar();
-        Server.menuServidor(); 
+        
+        // Thread para procesar mensajes entrantes en tiempo real
+        Thread procesadorMensajes = new Thread(() -> {
+            while (true) {
+                procesarMensajesEntrantes(servidor);
+                try {
+                    Thread.sleep(100); // Pequeña pausa para no saturar la CPU
+                } catch (InterruptedException e) {
+                    break;
+                }
+            }
+        });
+        procesadorMensajes.setDaemon(true); // Para que se cierre cuando el main termine
+        procesadorMensajes.start();
 
-        System.out.print("\033[H\033[2J");
-        System.out.flush();
-        System.out.println("┌─────────────────────────────────────────────┐");
-        System.out.println("│                DONKEY KONG JR               │");
-        System.out.println("└─────────────────────────────────────────────┘");
-        System.out.println();
+        ejecutarInterfazUsuario(servidor);
+    }
 
-        World world = new World("World/Levels/lvl1.txt");
-        Player player = new Player(0, 19);
-        CollisionSystem collision = new CollisionSystem(world);
-        GravitySystem gravity = new GravitySystem(collision);
+    private static void procesarMensajesEntrantes(Server servidor) {
+        // Procesar mensajes de J1
+        if (!servidor.mensajes_j1.isEmpty()) {
+            String mensaje = servidor.mensajes_j1.remove(0); // Obtener y remover el primer mensaje
+            Socket s1 = servidor.getSocketJugador(servidor.J1_NAME);
+            if (s1 != null) {
+                String map1 = "Mapa1 para: " + mensaje;
+                servidor.enviarA(s1, map1);
+                servidor.enviarAMisEspectadores(servidor.J1_NAME, map1);
+                System.out.println("✓ Mensaje de J1 procesado: " + mensaje);
+            }
+        }
 
-        player.moveRight(collision);
-        player.jump(gravity, collision); 
+        // Procesar mensajes de J2
+        if (!servidor.mensajes_j2.isEmpty()) {
+            String mensaje = servidor.mensajes_j2.remove(0); // Obtener y remover el primer mensaje
+            Socket s2 = servidor.getSocketJugador(servidor.J2_NAME);
+            if (s2 != null) {
+                String map2 = "Mapa2 para: " + mensaje;
+                servidor.enviarA(s2, map2);
+                servidor.enviarAMisEspectadores(servidor.J2_NAME, map2);
+                System.out.println("✓ Mensaje de J2 procesado: " + mensaje);
+            }
+        }
+    }
 
-        renderWorld(world, player);
+    private static void ejecutarInterfazUsuario(Server servidor) {
+        try (Scanner sc = new Scanner(System.in)) {
+            while (true) {
+                servidor.mostrarMenuPrincipal();
+
+                String opcion = sc.nextLine();
+
+                switch (opcion) {
+                    case "1" -> servidor.opcionEnviarMensaje(sc);
+                    case "2" -> {
+                        servidor.cerrarServidor();
+                        return; // Salir del método
+                    }
+                    default -> System.out.println("Opción no válida.");
+                }
+            }
+        }
     }
 }
