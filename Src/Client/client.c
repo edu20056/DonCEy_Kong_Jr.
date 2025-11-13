@@ -222,7 +222,7 @@ int main() {
         }
         
         // Resto del código igual...
-        printf("Ingrese el nombre exacto del jugador a espectear: ");
+        printf("Ingrese el numero de jugador por espectear: ");
         if (fgets(nombre, sizeof(nombre), stdin) == NULL) {
             close(sock);
             return 1;
