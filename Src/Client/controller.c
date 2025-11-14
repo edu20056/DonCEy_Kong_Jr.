@@ -9,7 +9,7 @@ void updateEnemies(void);
 
 void runGame() {
     printf("Debug: Iniciando runGame()\n");
-    
+
     // INICIALIZAR lists
     lists = malloc(sizeof(Lists));
     if (lists == NULL) {
@@ -26,7 +26,7 @@ void runGame() {
     // --- Entrada dinámica de cocodrilos ---
     printf("Ingrese la cantidad de cocodrilos: ");
     scanf("%d", &lists->numOfCrocodiles);
-    if(lists->numOfCrocodiles > 100) lists->numOfCrocodiles = 100; // límite por seguridad
+    if(lists->numOfCrocodiles > 100) lists->numOfCrocodiles = 100;
     lists->currentNumberOfCrocodiles = lists->numOfCrocodiles;
 
     for (int i = 0; i < lists->numOfCrocodiles; i++) {
@@ -36,7 +36,7 @@ void runGame() {
 
         lists->cocrodileList[i].posX = x;
         lists->cocrodileList[i].posY = y;
-        lists->cocrodileList[i].species = species % 2;  // asegurar 0 o 1
+        lists->cocrodileList[i].species = species % 2;
         lists->cocrodileList[i].speed = 2;
         lists->cocrodileList[i].alive = 1;
         lists->cocrodileList[i].eCollider.x = x;
@@ -45,7 +45,7 @@ void runGame() {
         lists->cocrodileList[i].eCollider.h = 40;
     }
 
-    // --- Inicialización de frutas (puedes hacerla interactiva igual si quieres) ---
+    // --- Inicialización de frutas ---
     lists->numOfFruits = 8;
     lists->currentNumberOfFruits = lists->numOfFruits;
     for (int i = 0; i < lists->numOfFruits; i++) {
@@ -80,7 +80,7 @@ void runGame() {
 
     srand((int)time(NULL));
 
-    // Crear ventana y renderer (mismo hilo que renderiza)
+    // Crear ventana y renderer
     window = SDL_CreateWindow("DonCE Y Kong Jr - Local",
                               SDL_WINDOWPOS_UNDEFINED,
                               SDL_WINDOWPOS_UNDEFINED,
@@ -101,33 +101,31 @@ void runGame() {
     gameState.renderer = renderer;
     loadGame(&gameState);
 
-    // Crear hilo para la lógica del juego
-    pthread_t logicThread;
-    if (pthread_create(&logicThread, NULL, runGameThread, NULL) != 0) {
-        printf("Error al crear hilo de lógica\n");
-        return;
-    }
-
-    // --- Bucle principal de renderizado ---
+    // --- Bucle principal de juego y renderizado ---
     SDL_Event event;
     int running = 1;
 
-    printf("Debug: Iniciando bucle principal de renderizado...\n");
+    printf("Debug: Iniciando bucle principal de juego...\n");
     while (running && lists->gameOn) {
-        while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_QUIT)
-                running = 0;
-        }
+        Uint32 frameStart = SDL_GetTicks();
 
-        // Dibujar frame actual
+        // Procesar eventos
+        int done = processEvents(window, &gameState);
+        if (done) running = 0;
+
+        // Lógica del juego
+        updateEnemies();
+        process(&gameState);
+        collisionDetect(&gameState);
+        ObjectCollision(&gameState);
+
+        // Renderizado
         doRender(renderer, &gameState);
 
-        // Pequeño retraso para controlar FPS (~60 FPS)
-        SDL_Delay(16);
+        // Control de FPS ~60
+        Uint32 frameTime = SDL_GetTicks() - frameStart;
+        if(frameTime < 16) SDL_Delay(16 - frameTime);
     }
-
-    // Esperar a que termine el hilo de lógica
-    pthread_join(logicThread, NULL);
 
     // --- Liberar recursos ---
     printf("Debug: Cerrando juego y liberando recursos\n");
@@ -137,33 +135,4 @@ void runGame() {
     TTF_Quit();
     SDL_Quit();
     free(lists);
-}
-
-
-
-void* runGameThread(void* arg){
-    (void)arg; // silenciar parámetro no usado
-    
-    int done = 0;
-    
-    
-    while(!done && lists->gameOn){
-        Uint32 currentTime = SDL_GetTicks(); 
-        done = processEvents(window, &gameState);
-
-        updateEnemies();            
-        process(&gameState);        
-        collisionDetect(&gameState);
-        ObjectCollision(&gameState); 
-        doRender(renderer, &gameState);
-
-        // Control de FPS ~60
-        Uint32 frameTime = SDL_GetTicks() - currentTime;
-        if(frameTime < 16) SDL_Delay(16 - frameTime);
-
-        
-    }
-    
-    closeGame(window, &gameState, renderer);
-    pthread_exit(0);
 }

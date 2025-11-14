@@ -19,7 +19,7 @@ extern Lists *lists;
 
 void runGame();
 void updateEnemies(void);
-void* runGameThread(void* arg);
+
 
 
 #endif //DONCEYKONGJR_CONTROLLER_H

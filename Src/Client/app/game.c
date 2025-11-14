@@ -1,7 +1,6 @@
 #include "game.h"
 
 
-// Al inicio de game.c (después de los includes)
 
 // DEFINICIONES de las variables globales (sin extern)
 Lists *lists = NULL;
@@ -417,57 +416,58 @@ void process(GameState *game){
     player->dy += GRAVITY;
 }
 
+
 void collisionDetect(GameState *game) {
     const float playerWidth = 48.0f;
     const float playerHeight = 48.0f;
-    
+
     float playerX = game->player.x;
     float playerY = game->player.y;
     float playerRight = playerX + playerWidth;
     float playerBottom = playerY + playerHeight;
 
-    // Resetear estado de plataforma al inicio
     game->player.onLedge = 0;
 
     for (int i = 0; i < 100; i++) {
-        // Colisiones con plataformas superiores (ledges)
-        if (game->ledges[i].w > 0 && game->ledges[i].h > 0) {
-            float ledgeX = game->ledges[i].x;
-            float ledgeY = game->ledges[i].y;
-            float ledgeRight = ledgeX + game->ledges[i].w;
-            float ledgeBottom = ledgeY + game->ledges[i].h;
 
-            // Verificar si el jugador está encima de la plataforma
-            if (playerRight > ledgeX && playerX < ledgeRight) {
-                // Colisión desde arriba (cayendo sobre la plataforma)
-                if (playerBottom >= ledgeY && playerY < ledgeY && game->player.dy > 0) {
-                    game->player.y = ledgeY - playerHeight;
+        // =========== 1. PLATFORMAS SUPERIORES (ledges) ===========
+        if (game->ledges[i].w > 0 && game->ledges[i].h > 0) {
+
+            float lx = game->ledges[i].x;
+            float ly = game->ledges[i].y;
+            float lRight = lx + game->ledges[i].w;
+            float lBottom = ly + game->ledges[i].h;
+
+            // ---- Colisión vertical superior (jugador cae encima) ----
+            if (playerRight > lx && playerX < lRight) {
+                if (playerBottom >= ly && playerY < ly && game->player.dy > 0) {
+                    game->player.y = ly - playerHeight;
                     game->player.dy = 0;
                     game->player.onLedge = 1;
                     playerY = game->player.y;
                     playerBottom = playerY + playerHeight;
                 }
-                // Colisión desde abajo (saltando contra la plataforma)
-                else if (playerY <= ledgeBottom && playerBottom > ledgeBottom && game->player.dy < 0) {
-                    game->player.y = ledgeBottom;
+                // ---- Colisión desde abajo (jugador salta contra plataforma) ----
+                else if (playerY <= lBottom && playerBottom > lBottom && game->player.dy < 0) {
+                    game->player.y = lBottom;
                     game->player.dy = 0;
                     playerY = game->player.y;
                     playerBottom = playerY + playerHeight;
                 }
             }
 
-            // Colisiones laterales con plataformas
-            if (playerBottom > ledgeY && playerY < ledgeBottom) {
-                // Colisión por la izquierda
-                if (playerRight >= ledgeX && playerX < ledgeX && game->player.dx > 0) {
-                    game->player.x = ledgeX - playerWidth;
+            // ---- Colisiones laterales ----
+            if (playerBottom > ly && playerY < lBottom) {
+                // Izquierda
+                if (playerRight >= lx && playerX < lx && game->player.dx > 0) {
+                    game->player.x = lx - playerWidth;
                     game->player.dx = 0;
                     playerX = game->player.x;
                     playerRight = playerX + playerWidth;
                 }
-                // Colisión por la derecha
-                else if (playerX <= ledgeRight && playerRight > ledgeRight && game->player.dx < 0) {
-                    game->player.x = ledgeRight;
+                // Derecha
+                else if (playerX <= lRight && playerRight > lRight && game->player.dx < 0) {
+                    game->player.x = lRight;
                     game->player.dx = 0;
                     playerX = game->player.x;
                     playerRight = playerX + playerWidth;
@@ -475,25 +475,26 @@ void collisionDetect(GameState *game) {
             }
         }
 
-        // Colisiones con plataformas inferiores (underledges)
+        // =========== 2. PLATFORMAS INFERIORES (underledges) ===========
         if (game->underledges[i].w > 0 && game->underledges[i].h > 0) {
-            float underX = game->underledges[i].x;
-            float underY = game->underledges[i].y;
-            float underRight = underX + game->underledges[i].w;
-            float underBottom = underY + game->underledges[i].h;
 
-            // Verificar si el jugador está debajo de la plataforma inferior
-            if (playerRight > underX && playerX < underRight) {
-                // Colisión desde abajo (saltando contra plataforma inferior)
-                if (playerY <= underBottom && playerBottom > underBottom && game->player.dy < 0) {
-                    game->player.y = underBottom;
+            float ux = game->underledges[i].x;
+            float uy = game->underledges[i].y;
+            float uRight = ux + game->underledges[i].w;
+            float uBottom = uy + game->underledges[i].h;
+
+            // ---- Colisión vertical desde abajo (saltando contra plataforma) ----
+            if (playerRight > ux && playerX < uRight) {
+
+                if (playerY <= uBottom && playerBottom > uBottom && game->player.dy < 0) {
+                    game->player.y = uBottom;
                     game->player.dy = 0;
                     playerY = game->player.y;
                     playerBottom = playerY + playerHeight;
                 }
-                // Colisión desde arriba (cayendo sobre plataforma inferior)
-                else if (playerBottom >= underY && playerY < underY && game->player.dy > 0) {
-                    game->player.y = underY - playerHeight;
+                // ---- Colisión desde arriba (cayendo sobre plataforma inferior) ----
+                else if (playerBottom >= uy && playerY < uy && game->player.dy > 0) {
+                    game->player.y = uy - playerHeight;
                     game->player.dy = 0;
                     game->player.onLedge = 1;
                     playerY = game->player.y;
@@ -501,18 +502,18 @@ void collisionDetect(GameState *game) {
                 }
             }
 
-            // Colisiones laterales con plataformas inferiores
-            if (playerBottom > underY && playerY < underBottom) {
-                // Colisión por la izquierda
-                if (playerRight >= underX && playerX < underX && game->player.dx > 0) {
-                    game->player.x = underX - playerWidth;
+            // ---- Colisiones laterales ----
+            if (playerBottom > uy && playerY < uBottom) {
+                // Izquierda
+                if (playerRight >= ux && playerX < ux && game->player.dx > 0) {
+                    game->player.x = ux - playerWidth;
                     game->player.dx = 0;
                     playerX = game->player.x;
                     playerRight = playerX + playerWidth;
                 }
-                // Colisión por la derecha
-                else if (playerX <= underRight && playerRight > underRight && game->player.dx < 0) {
-                    game->player.x = underRight;
+                // Derecha
+                else if (playerX <= uRight && playerRight > uRight && game->player.dx < 0) {
+                    game->player.x = uRight;
                     game->player.dx = 0;
                     playerX = game->player.x;
                     playerRight = playerX + playerWidth;
@@ -521,6 +522,8 @@ void collisionDetect(GameState *game) {
         }
     }
 }
+
+
 
 // ----------------------------------------------------
 // Actualiza posiciones y movimiento de los enemigos
@@ -696,18 +699,15 @@ int processEvents(SDL_Window *window, GameState *game) {
     SDL_Event event;
     int done = 0;
 
-    // Obtener el estado actual del teclado para movimientos continuos
+    // Obtener el estado actual del teclado
     const Uint8 *state = SDL_GetKeyboardState(NULL);
 
     while (SDL_PollEvent(&event)) {
         switch (event.type) {
 
             case SDL_WINDOWEVENT_CLOSE:
-                if (window) {
-                    SDL_DestroyWindow(window);
-                    window = NULL;
-                    done = 1;
-                }
+            case SDL_QUIT:
+                done = 1;
                 break;
 
             case SDL_KEYDOWN:
@@ -715,20 +715,29 @@ int processEvents(SDL_Window *window, GameState *game) {
                     case SDLK_ESCAPE:
                         done = 1;
                         break;
+
                     case SDLK_UP:
                         if (game->player.onLedge) {
                             Mix_PlayChannel(-1, jumpSound, 0);
                             game->player.dy = -8;
                             game->player.onLedge = 0;
                         } else if (game->player.onLiana) {
-                            Mix_PlayChannel(-1, climb, 0);
+                            
+                            int climbChannel = 1;
+                            if (!Mix_Playing(climbChannel)) {
+                                Mix_PlayChannel(climbChannel, climb, 0);
+                            }
                             game->player.dy = -10;
                             game->player.onLiana = 0;
                         }
                         break;
+
                     case SDLK_DOWN:
                         if (game->player.onLiana) {
-                            Mix_PlayChannel(-1, climb, 0);
+                            int climbChannel = 1;
+                            if (!Mix_Playing(climbChannel)) {
+                                Mix_PlayChannel(climbChannel, climb, 0);
+                            }
                             game->player.dy = 8;
                             game->player.onLiana = 0;
                         }
@@ -736,78 +745,63 @@ int processEvents(SDL_Window *window, GameState *game) {
                 }
                 break;
 
-            case SDL_QUIT:
-                done = 1;
-                break;
-
             case SDL_MOUSEBUTTONDOWN:
-                if (game->windowPage == 0 && event.button.button == SDL_BUTTON_LEFT) {
+                if (event.button.button == SDL_BUTTON_LEFT) {
                     int mouseX = event.button.x;
                     int mouseY = event.button.y;
 
-                    // Botón Play
-                    if (playGame_btn(game, mouseX, mouseY)) {
-                        game->windowPage = 1;
-                        Mix_FreeMusic(opening);
-                        Mix_PlayMusic(backgroundSound, -1);
-                    }
-
-                    // Botón Exit
-                    if (exitGame_btn(game, mouseX, mouseY)) {
-                        closeGame(window, game, game->renderer);
-                        done = 1;
+                    if (game->windowPage == 0) { // MENU
+                        // Botón Play
+                        if (playGame_btn(game, mouseX, mouseY)) {
+                            game->windowPage = 1; // Cambiar a juego
+                            Mix_FreeMusic(opening);
+                            Mix_PlayMusic(backgroundSound, -1);
+                        }
+                        // Botón Exit
+                        else if (exitGame_btn(game, mouseX, mouseY)) {
+                            done = 1;
+                        }
                     }
                 }
                 break;
         }
     }
 
+
     // -------------------------------
-    // Movimiento continuo con teclado - VELOCIDAD CONSTANTE
+    // Movimiento continuo con teclado
     // -------------------------------
-    
-    // Variables para velocidad constante
-    float constantSpeed = 4.0f;  // Velocidad constante horizontal
-    float jumpBoost = 0.15f;     // Pequeño boost adicional al saltar
-    
-    // Salto más alto manteniendo la tecla (opcional, puedes quitarlo si quieres)
+    float constantSpeed = 4.0f;  // Velocidad horizontal
+    float jumpBoost = 0.15f;     // Boost salto
+
+    // Salto más alto si se mantiene la tecla
     if (state[SDL_SCANCODE_UP] && !game->player.onLedge && !game->player.onLiana) {
         game->player.dy -= jumpBoost;
     }
 
-    // MOVIMIENTO HORIZONTAL CONSTANTE
+    // Movimiento horizontal
     if (state[SDL_SCANCODE_LEFT]) {
-        game->player.dx = -constantSpeed;  // Velocidad constante hacia izquierda
+        game->player.dx = -constantSpeed;
         game->player.facingLeft = 1;
         game->player.slowingDown = 0;
-        
-        // Animación mientras se mueve
-        if(game->time % 8 == 0){
-            game->player.animFrame = !game->player.animFrame;
-        }
-        
+        if (game->time % 8 == 0) game->player.animFrame = !game->player.animFrame;
     } else if (state[SDL_SCANCODE_RIGHT]) {
-        game->player.dx = constantSpeed;   // Velocidad constante hacia derecha
+        game->player.dx = constantSpeed;
         game->player.facingLeft = 0;
         game->player.slowingDown = 0;
-        
-        // Animación mientras se mueve
-        if(game->time % 8 == 0){
-            game->player.animFrame = !game->player.animFrame;
-        }
-        
+        if (game->time % 8 == 0) game->player.animFrame = !game->player.animFrame;
     } else {
-        // Desaceleración cuando no se presionan teclas de movimiento
+        // Desaceleración
         game->player.animFrame = 0;
         game->player.dx *= 0.8f;
         game->player.slowingDown = 1;
-        if (fabsf(game->player.dx) < 0.1f) {
-            game->player.dx = 0;
-        }
+        if (fabsf(game->player.dx) < 0.1f) game->player.dx = 0;
     }
 
     return done;
 }
+
+
 int playGame_btn(GameState *game, int mouseX, int mouseY){
     int playXLeft = 12*8*game->sizeMult;
     int playXRight = 19*8*game->sizeMult;
@@ -853,6 +847,8 @@ int exitGame_btn(GameState *game, int mouseX, int mouseY){
     return 1;
 }
 
+
+
 void doRender(SDL_Renderer *renderer, GameState *game){
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
@@ -888,7 +884,7 @@ void doRender(SDL_Renderer *renderer, GameState *game){
 
         message = TTF_RenderText_Solid(font, "SCORE ", textColor);
         text = SDL_CreateTextureFromSurface(game->renderer, message);
-//        SDL_QueryTexture(text, NULL,NULL,0, 0);
+       
         SDL_Rect textRect = {573,23,80,50};
         SDL_RenderCopy(game->renderer, text, NULL, &textRect);
 
@@ -899,7 +895,7 @@ void doRender(SDL_Renderer *renderer, GameState *game){
                                                                          
         points = TTF_RenderText_Solid(font, charScore, textColor);
         pointsTexture = SDL_CreateTextureFromSurface(game->renderer, points);
-//        SDL_QueryTexture(text, NULL,NULL,0, 0);                        
+                          
         SDL_Rect pointsRect = {653,25,35,40};
         SDL_RenderCopy(game->renderer, pointsTexture, NULL, &pointsRect);
 
@@ -945,12 +941,12 @@ void doRender(SDL_Renderer *renderer, GameState *game){
             }
         }
 
-        //draw a rectangle at player's position
+        
         SDL_Rect rect = { game->player.x, game->player.y, 70, 70};
         SDL_RenderCopyEx(renderer, game->playerFrames[game->player.animFrame],
                          NULL, &rect, 0, NULL, (game->player.facingLeft == 0));
 
-//        SDL_DestroyTexture(game->next);
+
 
     }
     if(game->windowPage == 2){
@@ -1014,14 +1010,14 @@ void doRender(SDL_Renderer *renderer, GameState *game){
         SDL_DestroyTexture(game->strawberry);
     }
 
-    //We are done drawing, "present" or show to the screen what we've drawn
+    
     SDL_RenderPresent(renderer);
 }
 
 
 
 void closeGame(SDL_Window *window, GameState *game, SDL_Renderer *renderer){
-    //Shutdown game and unload all memory
+    
     SDL_DestroyTexture(game->playerFrames[0]);
     SDL_DestroyTexture(game->playerFrames[1]);
     SDL_DestroyTexture(game->brick);
