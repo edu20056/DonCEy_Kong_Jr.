@@ -3,7 +3,8 @@ import java.util.Scanner;
 import Network.Server;
 
 public class Main {
-    
+    // lista_jugador 1 = [jugador, [entidades], [frutas], mapa]
+    // lista_jugador 2 = [jugador, [entidades], [frutas], mapa]
     public static void main(String[] args) {
         Server servidor = new Server();
         servidor.iniciar();

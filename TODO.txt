@@ -1,0 +1,20 @@
+POO:
+-Cocodrilo --> Rojo, Verde
+-Unir POO con Main actual.
+
+
+Flujo:
+- Se detecta jugador y se instancea sus clases jugador-[entidades]-[frutas]-map
+- Envia mapa por medio de JSON
+- Revisar colisiones jugador-[entidades] ---> Si hay colision con entidad "Game Over" ---> Si toca Donko "Win"
+- Se envia cambios en jugador (JSON)-[entidades]-[frutas] --> Esto se hace siempre (while(true)) --> Se verifica si se detectó movimiento
+ó se instancio algún objeto
+
+
+Eduardo:
+- Detectar inicio de jugador 
+- Ver envio de JSON
+
+Felipe:
+- Instancear objetos
+- Verificar colisiones / Sistema de gravedad
