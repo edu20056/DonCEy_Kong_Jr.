@@ -10,6 +10,8 @@ public class Server {
     private static final int MAX_ESPECTADORES_POR_JUGADOR = 2;
     private final Map<String, Socket> jugadores = new HashMap<>();
     private final Map<String, List<Socket>> espectadoresPorJugador = new HashMap<>();
+    public boolean J1_ING = false;
+    public boolean J2_ING = false;
     public String J1_NAME = "";
     public String J2_NAME = "";
     public final List<String> mensajes_j1 = new ArrayList<>();
@@ -391,6 +393,12 @@ public class Server {
     // Obtener Socket por nombre
     public Socket getSocketJugador(String nombreJugador) {
         return jugadores.get(nombreJugador);
+    }
+
+    // Obtener cantidad de jugadores
+    public int getJugadoresSize(){
+        int jugadoresConectados = this.jugadores.size();
+        return jugadoresConectados;
     }
 
 }
