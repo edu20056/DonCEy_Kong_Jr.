@@ -2,11 +2,14 @@
 #include <stdlib.h>
 #include "controller.h"
 
-int main(int argc, char *argv[]){
+int main(int argc, char *argv[]) {
     (void)argc;
     (void)argv;
-    
-    printf("Iniciando DonCE Y Kong Jr - Modo Local\n");
+
+    printf("=====================================\n");
+    printf("      DonCE Y Kong Jr - Modo Local   \n");
+    printf("=====================================\n\n");
+
     runGame();
 
     return EXIT_SUCCESS;

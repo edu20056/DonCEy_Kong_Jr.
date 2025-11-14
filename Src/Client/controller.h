@@ -1,25 +1,20 @@
 #ifndef DONCEYKONGJR_CONTROLLER_H
 #define DONCEYKONGJR_CONTROLLER_H
 
-#include "app/game.h"
-#include <pthread.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
+#include <SDL2/SDL_mixer.h>
 
-// Declarar variables globales externas
+// GameState viene del archivo game.h dentro de app/
+#include "app/game.h"
+
+// Variables globales accesibles desde todo el proyecto
 extern GameState gameState;
 extern SDL_Window *window;
 extern SDL_Renderer *renderer;
-extern Lists *lists;  
 
+// Función principal del juego
 void runGame();
-void updateEnemies(void);
 
-
-
-#endif //DONCEYKONGJR_CONTROLLER_H
+#endif // DONCEYKONGJR_CONTROLLER_H

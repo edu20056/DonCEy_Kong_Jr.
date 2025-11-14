@@ -5,158 +5,129 @@
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_mixer.h>
 #include <SDL2/SDL_ttf.h>
-#include <stdio.h>
-#include <time.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <stdint.h>
-#include <fcntl.h>
-#include <termios.h>
-#include <errno.h>
-#include <sys/ioctl.h>
-#include <pthread.h>
 
-#define GRAVITY  0.35f
+#define MAX_CROCS 50
+#define MAX_LIANAS 20
+#define MAX_FRUITS 50
 
-typedef struct
-{
-	float x, y;
-	float dx, dy;
-	short life;
-	char *name;
-	int onLedge;
-	bool onLiana;
+// ------------------------------------
+// Jugador básico
+// ------------------------------------
+typedef struct {
+    int x, y;
+} Player;
 
-	int animFrame, facingLeft, slowingDown;
-} DKJr;
-
-typedef struct{
-	int x, y, w, h;
-} Ledge;
-
-typedef struct{
+// ------------------------------------
+// Cocodrilos agregados por consola
+// ------------------------------------
+typedef struct {
     int x, y, w, h;
-    SDL_Rect eCollider;
-} Liana;
-
-typedef struct{
-    int x, y, w, h;
-    SDL_Rect eCollider;
-} SafetyKey;
-
-typedef struct Fruit{
-	int posX;
-	int posY;
-	int species;
-	int score;
-	int speed;
-	int width;
-	int height;
-	int alive;
-	SDL_Rect eCollider;
-} Fruit;
-
-typedef struct Crocodile{
-	int posX;
-	int posY;
-	int species;
-	int speed;
-	int width;
-	int height;
-	int alive;
-    SDL_Rect eCollider;
 } Crocodile;
 
-typedef struct Lists {
-    int score;
-    int gameOn;
-    int commOn;
-    int hp;
-    Crocodile cocrodileList[50];
-    Fruit fruitList[50];
-    int crocodilesAlive[50];
-    int fruitsAlive[50];
-    Ledge terrainList[50];
-    int numOfTerrain;
-    int numOfCrocodiles;
-    int numOfFruits;
-    int currentNumberOfFruits;
-    int currentNumberOfCrocodiles;
-} Lists;
+// ------------------------------------
+// Frutas agregadas por consola
+// ------------------------------------
+typedef struct {
+    int x, y, w, h;
+    int type;   // 0 = banana, 1 = orange, 2 = strawberry
+} Fruit;
 
-typedef struct{
-    DKJr player;
+// ------------------------------------
+// Lianas simples
+// ------------------------------------
+typedef struct {
+    int x, y, w, h;
+} Liana;
 
-    Ledge ledges[100];
-    Ledge underledges[100];
-    Liana lianas[100];
-    SafetyKey safekey;
+// ------------------------------------
+// Safety Key
+// ------------------------------------
+typedef struct {
+    int x, y, w;
+} SafetyKey;
 
-    SDL_Texture *playerFrames[2];
-    SDL_Texture *brick;
+typedef struct {
+    int x, y, w, h;
+} Ledge;
+
+typedef struct {
+    int x, y, w, h;
+} UnderLedge;
+
+
+// ------------------------------------
+// Estado general del juego
+// ------------------------------------
+typedef struct {
+
+    SDL_Renderer *renderer;
+
+    // Texturas principales
     SDL_Texture *background;
     SDL_Texture *menu;
-    SDL_Texture *platform;
-    SDL_Texture *liana;
-    SDL_Texture *safetyKey;
+    SDL_Texture *playerIdle;
+
+    // Mario, DK, Jaula, Scoreholder, Hearts
     SDL_Texture *mario;
     SDL_Texture *dk;
     SDL_Texture *jail;
     SDL_Texture *scoreholder;
-    SDL_Texture *blueKremling;
-    SDL_Texture *redKremling;
-    SDL_Texture *bananas;
-    SDL_Texture *oranges;
-    SDL_Texture *strawberry;
-    SDL_Texture *next;
-    SDL_Texture *appIcon;
-    SDL_Texture *scoreCounter;
     SDL_Texture *heart;
 
+    // Safety Key
+    SDL_Texture *safetyKey;
+    SafetyKey safekey;
 
-    SDL_Window *window;
-    int time;
-    int windowPage;
-    int sizeMult;
+    // Plataformas
+    SDL_Texture *brick;       // platform.png
+    SDL_Texture *platform;    // downplatform.png
+    Ledge ledges[100];
+    UnderLedge underledges[100];
 
-//    bool ending;
+    // Lianas
+    SDL_Texture *liana;
+    Liana lianas[MAX_LIANAS];
+    int lianaCount;
 
-    SDL_Renderer *renderer;
+    // Cocodrilos
+    SDL_Texture *crocTexture;
+    Crocodile crocs[MAX_CROCS];
+    int crocCount;
+
+    // Frutas
+    SDL_Texture *bananaTex;
+    SDL_Texture *orangeTex;
+    SDL_Texture *strawberryTex;
+
+    Fruit fruits[MAX_FRUITS];
+    int fruitCount;
+
+    // Música
+    Mix_Music *bgMusic;
+    Mix_Music *openingMusic;
+
+    // Estado del juego
+    int windowPage; // 0 = menú, 1 = juego
+
+    // Jugador
+    Player player;
+
 } GameState;
 
 
-
-
+// ------------------------------------
+// Funciones
+// ------------------------------------
 void loadGame(GameState *game);
-void process(GameState *game);
-void collisionDetect(GameState *game);
-int processEvents(SDL_Window *window, GameState *game);
 void doRender(SDL_Renderer *renderer, GameState *game);
-void closeGame(SDL_Window *window, GameState *game, SDL_Renderer *renderer);
-int playGame_btn(GameState *game, int mouseX, int mouseY);
-int exitGame_btn(GameState *game, int mouseX, int mouseY);
-int playNext_btn(GameState *game, int mouseX, int mouseY);
-bool checkCollision(SDL_Rect a, SDL_Rect b);
-void ObjectCollision(GameState* game);
-void checkPlayerLife(GameState *game);
+int processEvents(SDL_Window *window, GameState *game);
 
+// Cocodrilos
+void addCroc(GameState *game, int x, int y);
+void removeCroc(GameState *game, int index);
 
-extern Lists *lists;
-extern Mix_Music *opening;
-extern Mix_Music *ending;
-extern Mix_Music *backgroundSound;
-extern Mix_Chunk *jumpSound;
-extern Mix_Chunk *climb;
-extern Mix_Chunk *eatFruit;
-extern Mix_Chunk *cocrodrileCollision;
-extern TTF_Font *font;
-extern TTF_Font *scoreFont;
-extern SDL_Color textColor;
-extern SDL_Surface *message;
-extern SDL_Texture *text;
-extern SDL_Surface *points;
-extern SDL_Texture *pointsTexture;
+// Frutas
+void addFruit(GameState *game, int x, int y, int type);
+void removeFruit(GameState *game, int index);
 
-#endif //DONCEYKONGJR_GAME_H
+#endif
