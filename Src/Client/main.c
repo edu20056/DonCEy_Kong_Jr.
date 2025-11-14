@@ -14,3 +14,10 @@ int main(int argc, char *argv[]) {
 
     return EXIT_SUCCESS;
 }
+
+
+
+// -------------------------------------------------------
+// para compilar: gcc -o DonCEYKongJr     main.c controller.c app/game.c     $(pkg-config --cflags --libs sdl2 SDL2_image SDL2_mixer SDL2_ttf)
+// -------------------------------------------------------
+//para ejecutar:   ./DonCEYKongJr

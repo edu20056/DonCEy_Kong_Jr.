@@ -79,8 +79,8 @@ typedef struct {
     SafetyKey safekey;
 
     // Plataformas
-    SDL_Texture *brick;       // platform.png
-    SDL_Texture *platform;    // downplatform.png
+    SDL_Texture *brick;       
+    SDL_Texture *platform;    
     Ledge ledges[100];
     UnderLedge underledges[100];
 

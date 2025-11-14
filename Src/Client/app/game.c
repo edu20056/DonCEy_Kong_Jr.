@@ -146,7 +146,7 @@ void loadGame(GameState *game)
     // POSICIÓN INICIAL DEL JUGADOR
     // ===============================
     game->player.x = 40;
-    game->player.y = 500;   // posición clásica 240-40
+    game->player.y = 500;   
 
 
     game->windowPage = 0;
@@ -278,7 +278,7 @@ void doRender(SDL_Renderer *renderer, GameState *game)
         SDL_RenderCopy(renderer, game->background, NULL, &bg);
 
         // =====================================================
-        //        1. PLATAFORMAS (primero que todo)
+        //        1. PLATAFORMAS 
         // =====================================================
         for (int i = 0; i < 100; i++) {
             if (game->ledges[i].w > 0) {
@@ -359,7 +359,7 @@ void doRender(SDL_Renderer *renderer, GameState *game)
         }
 
         // =====================================================
-        //        6. HUD (Mario, Jaula, DK, Score)
+        //        6. HUBICACIÓN FIJA DE MARIO, DK, JAULA, SCOREHOLDER, HEARTS
         // =====================================================
         SDL_Rect marioRect = {175, 100, 75, 75};
         SDL_RenderCopy(renderer, game->mario, NULL, &marioRect);
@@ -380,7 +380,7 @@ void doRender(SDL_Renderer *renderer, GameState *game)
         }
 
         // =====================================================
-        //        7. JUGADOR (encima de todo)
+        //        7. JUGADOR 
         // =====================================================
         SDL_Rect p = {game->player.x, game->player.y, 70, 70};
         SDL_RenderCopy(renderer, game->playerIdle, NULL, &p);

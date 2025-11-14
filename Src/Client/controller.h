@@ -6,10 +6,10 @@
 #include <SDL2/SDL_ttf.h>
 #include <SDL2/SDL_mixer.h>
 
-// GameState viene del archivo game.h dentro de app/
+
 #include "app/game.h"
 
-// Variables globales accesibles desde todo el proyecto
+// Variables globales 
 extern GameState gameState;
 extern SDL_Window *window;
 extern SDL_Renderer *renderer;
