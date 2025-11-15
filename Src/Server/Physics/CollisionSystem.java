@@ -2,61 +2,72 @@ package Physics;
 
 import World.World;
 import World.TileType;
-import Utils.Coords;
 import Entities.Player;
+import Utils.Coords;
 
 public class CollisionSystem {
-    private World world;
+    private final World world;
     
     public CollisionSystem(World world) {
         this.world = world;
     }
     
-    public boolean canMoveTo(Coords position) {
-        if (!world.isWithinBounds(position)) {
+    public boolean canMoveTo(Coords coords) {
+        if (!world.isWithinBounds(coords)) {
             return false;
         }
         
-        TileType tile = world.getTile(position);
+        TileType tile = world.getTile(coords);
         return !tile.isSolid();
     }
     
-    public boolean isOnLadder(Coords position) {
-        if (!world.isWithinBounds(position)) return false;
-        TileType tile = world.getTile(position);
-        return tile == TileType.VINE;
-    }
-    
-    public boolean isOnGround(Coords position) {
-        Coords below = new Coords(position.getX(), position.getY() + 1);
-        if (!world.isWithinBounds(below)) return false;
-        
-        TileType tileBelow = world.getTile(below);
-        return tileBelow.isSolid() || tileBelow == TileType.PLATFORM;
-    }
-    
-    public boolean isInWater(Coords position) {
-        if (!world.isWithinBounds(position)) return false;
-        TileType tile = world.getTile(position);
-        return tile == TileType.WATER;
-    }
-    
-    public void updatePlayerState(Player player) {
-        Coords pos = player.getPosition();
-        
-        if (isInWater(pos)) {
-            player.die();
-            return;
+    public boolean isOnLadder(Coords coords) {
+        if (!world.isWithinBounds(coords)) {
+            return false;
         }
         
-        boolean onGround = isOnGround(pos);
-        boolean onLadder = isOnLadder(pos);
+        TileType tile = world.getTile(coords);
+        return tile.isClimbable();
+    }
+    
+    public boolean isOnVine(Coords coords) {
+        if (!world.isWithinBounds(coords)) {
+            return false;
+        }
         
+        TileType tile = world.getTile(coords);
+        return tile == TileType.VINE;
+    }
+
+    public void updatePlayerState(Player player) {
+        if (player == null) return;
+    
+        Coords playerPos = player.getPosition();
+    
+        // 1. Verificar si está en una enredadera
+        boolean onVine = isOnVine(playerPos);
+        player.setOnVine(onVine);
+    
+        // 2. Verificar si está en el suelo - método más robusto
+        boolean onGround = false;
+        if (world.isWithinBounds(playerPos)) {
+            // Verificar el tile directamente debajo del jugador
+            Coords below = new Coords(playerPos.getX(), playerPos.getY() + 1);
+            if (world.isWithinBounds(below)) {
+                TileType tileBelow = world.getTile(below);
+                onGround = tileBelow.isSolid();
+            }
+        }
+
         player.setOnGround(onGround);
-        player.setOnVine(onLadder);
-        
-        if (!onLadder) {
-            player.setClimbing(false);
+    
+        // 3. Verificar muerte
+        if (world.isWithinBounds(playerPos)) {
+            TileType currentTile = world.getTile(playerPos);
+            if (currentTile.isDeadly() && !player.isDead()) {
+                player.die();
+                System.out.println("¡Jugador murió por: " + currentTile + "!");
+            }
         }
     }
 }

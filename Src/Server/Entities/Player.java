@@ -1,3 +1,4 @@
+// Entities/Player.java
 package Entities;
 
 import Utils.Coords;
@@ -42,43 +43,61 @@ public class Player {
     }
     
     public void moveUp(CollisionSystem collision) {
-        if (dead || !climbing) return;
-        Coords newPos = new Coords(position.getX(), position.getY() - 1);
-        if (collision.canMoveTo(newPos) || collision.isOnLadder(newPos)) {
-            position = newPos;
-        }
-        collision.updatePlayerState(this);
-    }
-    
-    public void moveDown(CollisionSystem collision) {
-        if (dead || !climbing) return;
-        Coords newPos = new Coords(position.getX(), position.getY() + 1);
-        if (collision.canMoveTo(newPos) || collision.isOnLadder(newPos)) {
-            position = newPos;
-        }
-        collision.updatePlayerState(this);
-    }
-    
-    public void jump(GravitySystem gravity, CollisionSystem collision) {
         if (dead) return;
-        if (onGround || onVine) {
-            Coords jumpPos = new Coords(position.getX(), position.getY() - 1);
-            if (collision.canMoveTo(jumpPos)) {
-                position = jumpPos;
-                onGround = false;
+        // Permitir movimiento hacia arriba si está escalando O si está en una enredadera
+        if (climbing || onVine) {
+            Coords newPos = new Coords(position.getX(), position.getY() - 1);
+            if (collision.canMoveTo(newPos)) {
+                position = newPos;
             }
         }
+    }
+
+    public void jump(GravitySystem gravity, CollisionSystem collision) {
+        if (dead) return;
+
+        if (onGround || onVine) {
+            // Salto de 2 bloques de altura
+            Coords jumpPos1 = new Coords(position.getX(), position.getY() - 1);
+            Coords jumpPos2 = new Coords(position.getX(), position.getY() - 2);
+        
+            if (collision.canMoveTo(jumpPos1) && collision.canMoveTo(jumpPos2)) {
+                position = jumpPos2; // Salto alto
+            } else if (collision.canMoveTo(jumpPos1)) {
+                position = jumpPos1; // Salto normal
+            }
+            onGround = false;
+        }
+        collision.updatePlayerState(this);
+    }
+
+    public void moveDown(CollisionSystem collision) {
+        if (dead) return;
+        // Permitir movimiento hacia abajo si está escalando O si está en una enredadera
+        if (climbing || onVine) {
+            Coords newPos = new Coords(position.getX(), position.getY() + 1);
+            if (collision.canMoveTo(newPos) || collision.isOnLadder(newPos)) {
+                position = newPos;
+            }
+        }
+        collision.updatePlayerState(this);
     }
     
     public void toggleClimbing(CollisionSystem collision) {
         if (dead) return;
         if (onVine) {
             climbing = !climbing;
+            System.out.println("Escalando: " + climbing);
+        } else {
+            climbing = false; // No puede escalar si no está en una enredadera
         }
     }
     
     public void die() {
-        dead = true;
+        if (!dead) {
+            dead = true;
+            System.out.println("¡El jugador ha muerto!");
+        }
     }
     
     public void respawn(Coords spawnPoint) {
@@ -88,6 +107,7 @@ public class Player {
         climbing = false;
         onVine = false;
         facingRight = true;
+        System.out.println("¡Jugador respawneado en " + spawnPoint + "!");
     }
     
     // Getters

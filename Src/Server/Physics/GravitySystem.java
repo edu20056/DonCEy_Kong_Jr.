@@ -4,27 +4,26 @@ import Entities.Player;
 import Utils.Coords;
 
 public class GravitySystem {
-    private CollisionSystem collisionSystem;
+    private final CollisionSystem collisionSystem;
     
     public GravitySystem(CollisionSystem collisionSystem) {
         this.collisionSystem = collisionSystem;
     }
     
     public void applyGravity(Player player) {
-        // No aplicar gravedad si está en el suelo o trepando
-        if (player.isOnGround() || player.isClimbing()) {
+        if (player == null || player.isDead() || player.isClimbing()) {
             return;
         }
         
-        // Aplicar gravedad (caer 1 posición hacia abajo)
-        Coords currentPos = player.getPosition();
-        Coords newPos = new Coords(currentPos.getX(), currentPos.getY() + 1);
-        
-        if (collisionSystem.canMoveTo(newPos)) {
-            player.setPosition(newPos);
+        // Solo aplicar gravedad si no está en el suelo y no está en una liana
+        if (!player.isOnGround() && !player.isOnVine()) {
+            Coords below = new Coords(player.getPosition().getX(), player.getPosition().getY() + 1);
+            if (collisionSystem.canMoveTo(below)) {
+                player.setPosition(below);
+            }
         }
         
-        // Actualizar estado después de la gravedad
+        // Actualizar estado después de aplicar gravedad
         collisionSystem.updatePlayerState(player);
     }
 }
