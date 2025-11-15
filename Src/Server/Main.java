@@ -82,6 +82,12 @@ public class Main {
 
     private static void gestionarConexionJugador1() {
         // Solo crear jugador 1 si hay al menos 1 jugador conectado y no está activo
+        if (j1Activo) {
+            Socket s1 = servidor.getSocketJugador(servidor.J1_NAME);
+            String json1 = Main.generarJSON(player1.getPosition().getX(), player1.getPosition().getY(), frutasJ1);
+            servidor.enviarA(s1, json1);
+            servidor.enviarAMisEspectadores(servidor.J1_NAME, json1);
+        }
         if (!j1Activo && servidor.getJugadoresSize() >= 1) {
             try {
                 System.out.println("🔄 Inicializando mundo para Jugador 1...");
@@ -107,6 +113,7 @@ public class Main {
                 System.out.println("   - Cocodrilos: " + cocodrilosJ1.size());
                 System.out.println("   - Frutas: " + frutasJ1.size());
                 
+
             } catch (Exception e) {
                 System.err.println("❌ Error al crear mundo para J1: " + e.getMessage());
                 limpiarJugador1();
@@ -116,6 +123,12 @@ public class Main {
 
     private static void gestionarConexionJugador2() {
         // Solo crear jugador 2 si hay al menos 2 jugadores conectados y no está activo
+        if (j2Activo) {
+            Socket s2 = servidor.getSocketJugador(servidor.J2_NAME);
+            String json2 = Main.generarJSON(player2.getPosition().getX(), player2.getPosition().getY(), frutasJ2);
+            servidor.enviarA(s2, json2);
+            servidor.enviarAMisEspectadores(servidor.J2_NAME, json2);
+        }
         if (!j2Activo && servidor.getJugadoresSize() >= 2) {
             try {
                 System.out.println("🔄 Inicializando mundo para Jugador 2...");
