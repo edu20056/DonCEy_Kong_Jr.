@@ -235,16 +235,16 @@ public class Server {
         private void manejarJugador() throws IOException {
             String msg;
             while ((msg = in.readLine()) != null) {
-                System.out.println("[" + jugadorAsociado + "]: " + msg);
-                // Jugador asociado es jugador 1
-                if (jugadorAsociado == J1_NAME) {
-                    mensajes_j1.add(msg);
-                }
-                else { // jugador asociado es jugador 2
-                    mensajes_j2.add(msg);
+                if (!msg.isEmpty()) {  // verifica que no sea vacío
+                    if (jugadorAsociado.equals(J1_NAME)) {
+                        mensajes_j1.add(msg);
+                    } else {
+                        mensajes_j2.add(msg);
+                    }
                 }
             }
         }
+
 
         /** ----------------------------- */
         /**      LÓGICA DE ESPECTADOR     */

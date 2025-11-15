@@ -5,402 +5,433 @@ import Network.Server;
 import World.World;
 import World.TileType;
 import Entities.Player;
+import Entities.Coco;
+import Entities.RedCoco;
+import Entities.BlueCoco;
 import Physics.CollisionSystem;
 import Physics.GravitySystem;
 import Utils.Coords;
+import Entities.Fruit;
 
 public class Main {
-    private static World world;
-    private static Player player1;
-    private static Player player2;
-    private static CollisionSystem collisionSystem;
-    private static GravitySystem gravitySystem;
-    
-    // Posiciones iniciales (ajusta según tu mapa)
+    // Constantes
     private static final Coords SPAWN_J1 = new Coords(2, 1);
     private static final Coords SPAWN_J2 = new Coords(8, 1);
+    private static final int GAME_LOOP_DELAY = 200;
+    private static final String LEVEL_PATH = "World/Levels/lvl1.txt";
+    
+    // Jugadores y sus sistemas (inicialmente null)
+    private static Player player1 = null;
+    private static Player player2 = null;
+    private static World world1 = null;
+    private static World world2 = null;
+    private static CollisionSystem collisionSystem1 = null;
+    private static CollisionSystem collisionSystem2 = null;
+    private static GravitySystem gravitySystem1 = null;
+    private static GravitySystem gravitySystem2 = null;
+    
+    private static Server servidor;
+    
+    // Control de estado
+    private static boolean j1Activo = false;
+    private static boolean j2Activo = false;
+    
+    // Entidades por jugador (inicialmente listas vacías)
+    private static List<Coco> cocodrilosJ1 = new ArrayList<>();
+    private static List<Coco> cocodrilosJ2 = new ArrayList<>();
+    private static List<Fruit> frutasJ1 = new ArrayList<>();
+    private static List<Fruit> frutasJ2 = new ArrayList<>();
 
-    public static void renderWorld(World world, Player player1, Player player2) {
-        // Limpiar consola
-        System.out.print("\033[H\033[2J");
-        System.out.flush();
-        
-        System.out.println("=== MUNDO DEL JUEGO ===");
-        
-        for (int y = 0; y < world.getHeight(); y++) {
-            for (int x = 0; x < world.getWidth(); x++) {
-                Coords currentPos = new Coords(x, y);
-                boolean playerPrinted = false;
-                
-                // Verificar jugador 1
-                if (player1 != null && !player1.isDead() && 
-                    player1.getPosition().getX() == x && player1.getPosition().getY() == y) {
-                    System.out.print(player1.isFacingRight() ? "→" : "←");
-                    playerPrinted = true;
-                } 
-                // Verificar jugador 2
-                else if (player2 != null && !player2.isDead() && 
-                         player2.getPosition().getX() == x && player2.getPosition().getY() == y) {
-                    System.out.print(player2.isFacingRight() ? "►" : "◄");
-                    playerPrinted = true;
-                }
-                
-                // Si no hay jugador en esta posición, mostrar el tile del mundo
-                if (!playerPrinted) {
-                    TileType tile = world.getTile(currentPos);
-                    switch (tile) {
-                        case EMPTY:
-                            System.out.print(" ");
-                            break;
-                        case VINE:
-                            System.out.print("H");
-                            break;
-                        case PLATFORM:
-                            System.out.print("=");
-                            break;
-                        case WATER:
-                            System.out.print("~");
-                            break;
-                        case GOAL:
-                            System.out.print("X");
-                            break;
-                        default:
-                            System.out.print("?");
-                    }
-                }
-            }
-            System.out.println();
-        }
-        
-        // Información de estado
-        System.out.println("\n=== ESTADO DE JUGADORES ===");
-        if (player1 != null) {
-            Coords player1Pos = player1.getPosition();
-            System.out.printf("J1: Pos(%d,%d) %s %s %s %s %s%n", 
-                player1Pos.getX(), player1Pos.getY(),
-                player1.isFacingRight() ? "→" : "←",
-                player1.isOnGround() ? "[SUELO]" : "[AIRE]",
-                player1.isOnVine() ? "[ENREDADERA]" : "",
-                player1.isClimbing() ? "[ESCALANDO]" : "",
-                player1.isDead() ? "[MUERTO]" : "");
-        }
-        if (player2 != null) {
-            Coords player2Pos = player2.getPosition();
-            System.out.printf("J2: Pos(%d,%d) %s %s %s %s %s%n", 
-                player2Pos.getX(), player2Pos.getY(),
-                player2.isFacingRight() ? "→" : "←",
-                player2.isOnGround() ? "[SUELO]" : "[AIRE]",
-                player2.isOnVine() ? "[ENREDADERA]" : "",
-                player2.isClimbing() ? "[ESCALANDO]" : "",
-                player2.isDead() ? "[MUERTO]" : "");
-        }
-        System.out.println("Esperando movimientos de clientes...");
-    }
+    // ========== INICIALIZACIÓN ==========
 
     public static void main(String[] args) {
-        // Inicializar el juego
-        inicializarJuego();
-        
-        Server servidor = new Server();
+        servidor = new Server();
         servidor.iniciar();
         
-        // Thread para procesar mensajes entrantes en tiempo real
-        Thread procesadorMensajes = new Thread(() -> {
+        System.out.println("=== SERVIDOR INICIADO ===");
+        System.out.println("Esperando conexiones de clientes...");
+        System.out.println("Los mundos se crearán cuando los jugadores se conecten");
+        
+        Thread gameThread = new Thread(() -> {
             while (true) {
-                procesarMensajesEntrantes(servidor);
-                try {
-                    Thread.sleep(100); // Pequeña pausa para no saturar la CPU
-                } catch (InterruptedException e) {
-                    break;
-                }
-            }
-        });
-        procesadorMensajes.setDaemon(true);
-        procesadorMensajes.start();
-
-        // Thread para actualizar física y renderizar
-        Thread gameLoop = new Thread(() -> {
-            while (true) {
+                gestionarJugadores();
+                procesarMensajesEntrantes();
                 actualizarJuego();
-                renderWorld(world, player1, player2);
+                
                 try {
-                    Thread.sleep(200); // 5 FPS para que sea visible
+                    Thread.sleep(GAME_LOOP_DELAY);
                 } catch (InterruptedException e) {
                     break;
                 }
             }
         });
-        gameLoop.setDaemon(true);
-        gameLoop.start();
-
-        ejecutarInterfazUsuario(servidor);
-    }
-    
-    private static void inicializarJuego() {
-        try {
-            world = new World("World/Levels/lvl1.txt");
-            collisionSystem = new CollisionSystem(world);
-            gravitySystem = new GravitySystem(collisionSystem);
-            
-            player1 = new Player(SPAWN_J1.getX(), SPAWN_J1.getY());
-            player2 = new Player(SPAWN_J2.getX(), SPAWN_J2.getY());
-            
-            // Actualizar estado inicial de los jugadores
-            collisionSystem.updatePlayerState(player1);
-            collisionSystem.updatePlayerState(player2);
-            
-            System.out.println("✓ Juego inicializado correctamente");
-            System.out.println("✓ Mundo cargado: " + world.getWidth() + "x" + world.getHeight());
-        } catch (Exception e) {
-            System.err.println("Error al inicializar el juego: " + e.getMessage());
-            e.printStackTrace();
-        }
-    }
-    
-    private static void actualizarJuego() {
-        if (gravitySystem != null) {
-            if (player1 != null && !player1.isDead()) gravitySystem.applyGravity(player1);
-            if (player2 != null && !player2.isDead()) gravitySystem.applyGravity(player2);
-        }
-        if (collisionSystem != null) {
-            if (player1 != null) collisionSystem.updatePlayerState(player1);
-            if (player2 != null) collisionSystem.updatePlayerState(player2);
-        }
+        gameThread.setDaemon(true);
+        gameThread.start();
     }
 
-    private static void procesarMensajesEntrantes(Server servidor) {
-        // Verificar si se debe instancear un jugador
-        if (servidor.J1_ING == false && servidor.getJugadoresSize() == 1){
-            System.out.println("Se debe instancear jugador 1");
-            servidor.J1_ING = true;
-        } 
+    // ========== GESTIÓN DE JUGADORES ==========
 
-        if (servidor.J2_ING == false && servidor.getJugadoresSize() == 2){
-            System.out.println("Se debe instancear jugador 2");
-            servidor.J2_ING = true;
-        }
+    private static void gestionarJugadores() {
+        gestionarConexionJugador1();
+        gestionarConexionJugador2();
+        limpiarJugadoresDesconectados();
+    }
 
-        // Procesar mensajes de J1
-        if (!servidor.mensajes_j1.isEmpty()) {
-            String mensaje = servidor.mensajes_j1.remove(0); // Obtener y remover el primer mensaje
+    private static void gestionarConexionJugador1() {
+        // Solo crear jugador 1 si hay al menos 1 jugador conectado y no está activo
+        if (j1Activo) {
             Socket s1 = servidor.getSocketJugador(servidor.J1_NAME);
-            if (s1 != null) {
-                procesarMovimientoJugador(mensaje, player1, servidor.J1_NAME, servidor );
-            }    
-            
-            List<int[]> entidadesRandom = generarListaRandom(3);
-            List<int[]> frutasRandom    = generarListaRandom(5);
-
-            String json1 = Main.generarJSON(12, 12, entidadesRandom, frutasRandom);
-
+            String json1 = Main.generarJSON(player1.getPosition().getX(), player1.getPosition().getY(), frutasJ1);
             servidor.enviarA(s1, json1);
             servidor.enviarAMisEspectadores(servidor.J1_NAME, json1);
-            System.out.println("✓ Mensaje de J1 procesado: " + mensaje);
-            
         }
+        if (!j1Activo && servidor.getJugadoresSize() >= 1) {
+            try {
+                System.out.println("🔄 Inicializando mundo para Jugador 1...");
+                
+                // Crear mundo y sistemas para J1
+                world1 = new World(LEVEL_PATH);
+                collisionSystem1 = new CollisionSystem(world1);
+                gravitySystem1 = new GravitySystem(collisionSystem1);
+                player1 = new Player(SPAWN_J1.getX(), SPAWN_J1.getY());
+                
+                // Inicializar estado del jugador
+                collisionSystem1.updatePlayerState(player1);
+                
+                // Inicializar entidades
+                inicializarCocodrilosJ1();
+                inicializarFrutasJ1();
+                
+                j1Activo = true;
+                servidor.J1_ING = true;
+                
+                System.out.println("✅ Jugador 1 instanciado con su propio mundo");
+                System.out.println("   - Mundo: " + world1.getWidth() + "x" + world1.getHeight());
+                System.out.println("   - Cocodrilos: " + cocodrilosJ1.size());
+                System.out.println("   - Frutas: " + frutasJ1.size());
+                
 
-        // Procesar mensajes de J2
-        if (!servidor.mensajes_j2.isEmpty()) {
-            String mensaje = servidor.mensajes_j2.remove(0); // Obtener y remover el primer mensaje
-            Socket s2 = servidor.getSocketJugador(servidor.J2_NAME);
-            if (s2 != null) {
-                procesarMovimientoJugador(mensaje, player2, servidor.J2_NAME, servidor );
+            } catch (Exception e) {
+                System.err.println("❌ Error al crear mundo para J1: " + e.getMessage());
+                limpiarJugador1();
             }
-
-            List<int[]> entidadesRandom = generarListaRandom(3);
-            List<int[]> frutasRandom    = generarListaRandom(5);
-
-            String json2 = Main.generarJSON(12, 12, entidadesRandom, frutasRandom);
-
-            // para que por cada frame se manden cambios, esto debe estar fuera del if en un if (servidor.J2_ING == true)
-            servidor.enviarA(s2, json2);
-            servidor.enviarAMisEspectadores(servidor.J2_NAME, json2);
-            System.out.println("✓ Mensaje de J2 procesado: " + mensaje);
-            
         }
-        
     }
 
-    private static void procesarMovimientoJugador(String mensaje, Player jugador, String nombreJugador, Server servidor) {
-        if (jugador == null || jugador.isDead()) return;
+    private static void gestionarConexionJugador2() {
+        // Solo crear jugador 2 si hay al menos 2 jugadores conectados y no está activo
+        if (j2Activo) {
+            Socket s2 = servidor.getSocketJugador(servidor.J2_NAME);
+            String json2 = Main.generarJSON(player2.getPosition().getX(), player2.getPosition().getY(), frutasJ2);
+            servidor.enviarA(s2, json2);
+            servidor.enviarAMisEspectadores(servidor.J2_NAME, json2);
+        }
+        if (!j2Activo && servidor.getJugadoresSize() >= 2) {
+            try {
+                System.out.println("🔄 Inicializando mundo para Jugador 2...");
+                
+                // Crear mundo y sistemas para J2
+                world2 = new World(LEVEL_PATH);
+                collisionSystem2 = new CollisionSystem(world2);
+                gravitySystem2 = new GravitySystem(collisionSystem2);
+                player2 = new Player(SPAWN_J2.getX(), SPAWN_J2.getY());
+                
+                // Inicializar estado del jugador
+                collisionSystem2.updatePlayerState(player2);
+                
+                // Inicializar entidades
+                inicializarCocodrilosJ2();
+                inicializarFrutasJ2();
+                
+                j2Activo = true;
+                servidor.J2_ING = true;
+                
+                System.out.println("✅ Jugador 2 instanciado con su propio mundo");
+                System.out.println("   - Mundo: " + world2.getWidth() + "x" + world2.getHeight());
+                System.out.println("   - Cocodrilos: " + cocodrilosJ2.size());
+                System.out.println("   - Frutas: " + frutasJ2.size());
+                
+            } catch (Exception e) {
+                System.err.println("❌ Error al crear mundo para J2: " + e.getMessage());
+                limpiarJugador2();
+            }
+        }
+    }
+
+    private static void limpiarJugadoresDesconectados() {
+        // Verificar si J1 estaba activo pero ahora está desconectado
+        if (j1Activo && servidor.getSocketJugador(servidor.J1_NAME) == null) {
+            System.out.println("🔌 Jugador 1 desconectado, liberando recursos...");
+            limpiarJugador1();
+        }
+        
+        // Verificar si J2 estaba activo pero ahora está desconectado
+        if (j2Activo && servidor.getSocketJugador(servidor.J2_NAME) == null) {
+            System.out.println("🔌 Jugador 2 desconectado, liberando recursos...");
+            limpiarJugador2();
+        }
+    }
+
+    private static void limpiarJugador1() {
+        player1 = null;
+        world1 = null;
+        collisionSystem1 = null;
+        gravitySystem1 = null;
+        cocodrilosJ1.clear();
+        frutasJ1.clear();
+        j1Activo = false;
+        servidor.J1_ING = false;
+        System.out.println("🗑️  Recursos de Jugador 1 liberados");
+    }
+
+    private static void limpiarJugador2() {
+        player2 = null;
+        world2 = null;
+        collisionSystem2 = null;
+        gravitySystem2 = null;
+        cocodrilosJ2.clear();
+        frutasJ2.clear();
+        j2Activo = false;
+        servidor.J2_ING = false;
+        System.out.println("🗑️  Recursos de Jugador 2 liberados");
+    }
+
+    // ========== INICIALIZACIÓN DE ENTIDADES ==========
+
+    private static void inicializarCocodrilosJ1() {
+        cocodrilosJ1.clear();
+        cocodrilosJ1.add(new RedCoco(11, 6));
+        cocodrilosJ1.add(new BlueCoco(0, 6));
+    }
+
+    private static void inicializarCocodrilosJ2() {
+        cocodrilosJ2.clear();
+        cocodrilosJ2.add(new RedCoco(7, 3));
+        cocodrilosJ2.add(new BlueCoco(6, 2));
+    }
+
+    private static void inicializarFrutasJ1() {
+        frutasJ1.clear();
+        frutasJ1.add(new Fruit(5, 2, "MANZANA"));
+        frutasJ1.add(new Fruit(3, 4, "BANANA"));
+        frutasJ1.add(new Fruit(7, 3, "FRUTILLA"));
+        frutasJ1.add(new Fruit(2, 5, "UVA"));
+        frutasJ1.add(new Fruit(6, 6, "NARANJA"));
+    }
+
+    private static void inicializarFrutasJ2() {
+        frutasJ2.clear();
+        frutasJ2.add(new Fruit(5, 2, "MANZANA"));
+        frutasJ2.add(new Fruit(3, 4, "BANANA"));
+        frutasJ2.add(new Fruit(7, 3, "FRUTILLA"));
+        frutasJ2.add(new Fruit(2, 5, "UVA"));
+        frutasJ2.add(new Fruit(6, 6, "NARANJA"));
+    }
+
+    // ========== ACTUALIZACIÓN DEL JUEGO ==========
+
+    private static void actualizarJuego() {
+        actualizarCocodrilos();
+        actualizarFisicaJugadores();
+    }
+
+    private static void actualizarCocodrilos() {
+        // Solo actualizar cocodrilos si el jugador está activo
+        if (j1Activo && world1 != null) {
+            for (Coco cocodrilo : cocodrilosJ1) {
+                if (cocodrilo.isActivo()) {
+                    cocodrilo.actualizar(world1);
+                }
+            }
+            cocodrilosJ1.removeIf(c -> !c.isActivo());
+        }
+        
+        if (j2Activo && world2 != null) {
+            for (Coco cocodrilo : cocodrilosJ2) {
+                if (cocodrilo.isActivo()) {
+                    cocodrilo.actualizar(world2);
+                }
+            }
+            cocodrilosJ2.removeIf(c -> !c.isActivo());
+        }
+    }
+
+    private static void actualizarFisicaJugadores() {
+        // Solo actualizar física si el jugador está activo y tiene sistemas
+        if (j1Activo && gravitySystem1 != null && player1 != null && !player1.isDead()) {
+            gravitySystem1.applyGravity(player1);
+            collisionSystem1.updatePlayerState(player1, cocodrilosJ1, frutasJ1);
+        }
+        
+        if (j2Activo && gravitySystem2 != null && player2 != null && !player2.isDead()) {
+            gravitySystem2.applyGravity(player2);
+            collisionSystem2.updatePlayerState(player2, cocodrilosJ2, frutasJ2);
+        }
+    }
+
+    // ========== PROCESAMIENTO DE MENSAJES ==========
+
+    private static void procesarMensajesEntrantes() {
+        // Solo procesar mensajes si el jugador está activo
+        if (j1Activo && !servidor.mensajes_j1.isEmpty()) {
+            String mensaje = servidor.mensajes_j1.remove(0);
+            procesarMovimientoJugador(mensaje, player1, collisionSystem1, gravitySystem1, cocodrilosJ1, frutasJ1, servidor.J1_NAME);
+            enviarDatosJugador(servidor.J1_NAME, player1, frutasJ1);
+        }
+
+        if (j2Activo && !servidor.mensajes_j2.isEmpty()) {
+            String mensaje = servidor.mensajes_j2.remove(0);
+            procesarMovimientoJugador(mensaje, player2, collisionSystem2, gravitySystem2, cocodrilosJ2, frutasJ2, servidor.J2_NAME);
+            enviarDatosJugador(servidor.J2_NAME, player2, frutasJ2);
+        }
+    }
+
+    private static void procesarMovimientoJugador(String mensaje, Player jugador, 
+                                                 CollisionSystem collision, GravitySystem gravity, 
+                                                 List<Coco> cocodrilos, List<Fruit> frutas, String nombreJugador) {
+        if (jugador == null || jugador.isDead() || collision == null || gravity == null) return;
         
         try {
             int movimiento = Integer.parseInt(mensaje);
             String accion = "";
-            boolean movimientoExitoso = false;
             
             switch (movimiento) {
-                case 1 -> { // ARRIBA - Salta si está en suelo, sube si está en liana
+                case 1: // ARRIBA
                     if (jugador.isOnGround()) {
-                        // SALTO - usa el método jump
-                        Coords posAntes = jugador.getPosition();
-                        jugador.jump(gravitySystem, collisionSystem);
-                        Coords posDespues = jugador.getPosition();
-                        boolean saltoExitoso = !posAntes.equals(posDespues);
-                    
-                        if (saltoExitoso) {
-                            accion = nombreJugador + " SALTÓ desde el suelo";
-                        } else {
-                            accion = nombreJugador + " intentó saltar pero no pudo (obstáculo arriba)";
-                        }
+                        jugador.jump(gravity, collision);
+                        accion = "SALTÓ desde el suelo";
                     } else if (jugador.isOnVine()) {
-                        // SUBIR - usa moveUp cuando está en liana
-                        Coords posAntes = jugador.getPosition();
-                        jugador.moveUp(collisionSystem);
-                        Coords posDespues = jugador.getPosition();
-                        movimientoExitoso = !posAntes.equals(posDespues);
-                    
-                        if (movimientoExitoso) {
-                            accion = nombreJugador + " SUBIÓ por la liana";
-                        } else {
-                            accion = nombreJugador + " intentó subir pero no pudo (obstáculo arriba)";
-                        }
+                        jugador.moveUp(collision);
+                        accion = "SUBIÓ por la liana";
                     } else {
-                        accion = nombreJugador + " no puede moverse arriba (no está en suelo ni en liana)";
+                        accion = "no puede moverse arriba";
                     }
-                }
-                case 2 -> { // Derecha
-                    Coords posAntes = jugador.getPosition();
-                    jugador.moveRight(collisionSystem);
-                    Coords posDespues = jugador.getPosition();
-                    movimientoExitoso = !posAntes.equals(posDespues);
-                    accion = nombreJugador + " se movió DERECHA";
-                }
-                case 3 -> { // Abajo
-                    Coords posAntes = jugador.getPosition();
-                    jugador.moveDown(collisionSystem);
-                    Coords posDespues = jugador.getPosition();
-                    movimientoExitoso = !posAntes.equals(posDespues);
-                    accion = nombreJugador + " se movió ABAJO";
-                }
-                case 4 -> { // Izquierda
-                    Coords posAntes = jugador.getPosition();
-                    jugador.moveLeft(collisionSystem);
-                    Coords posDespues = jugador.getPosition();
-                    movimientoExitoso = !posAntes.equals(posDespues);
-                    accion = nombreJugador + " se movió IZQUIERDA";
-                }
-                default -> accion = nombreJugador + " acción desconocida: " + movimiento;
+                    break;
+                case 2: // Derecha
+                    jugador.moveRight(collision);
+                    accion = "se movió DERECHA";
+                    break;
+                case 3: // Abajo
+                    jugador.moveDown(collision);
+                    accion = "se movió ABAJO";
+                    break;
+                case 4: // Izquierda
+                    jugador.moveLeft(collision);
+                    accion = "se movió IZQUIERDA";
+                    break;
+                default:
+                    accion = "acción desconocida: " + movimiento;
             }
             
-            // Actualizar estado después del movimiento
-            collisionSystem.updatePlayerState(jugador);
+            collision.updatePlayerState(jugador, cocodrilos, frutas);
             
-            // Enviar confirmación y estado actualizado
+            // Enviar confirmación
             String estadoActual = obtenerEstadoJugador(jugador, nombreJugador);
-            String mensajeCompleto = accion + " | " + estadoActual;
+            String mensajeCompleto = nombreJugador + " " + accion + " | " + estadoActual;
             
-            // Enviar al jugador que realizó la acción
             Socket socket = servidor.getSocketJugador(nombreJugador);
             if (socket != null) {
                 servidor.enviarA(socket, mensajeCompleto);
             }
             
-            // Enviar a espectadores
             servidor.enviarAMisEspectadores(nombreJugador, mensajeCompleto);
             
         } catch (NumberFormatException e) {
-            System.err.println("Error: mensaje no es un número válido: " + mensaje);
+            System.err.println("Error: mensaje inválido: " + mensaje);
         }
     }
-    
-    private static String obtenerEstadoJugador(Player jugador, String nombre) {
-        if (jugador == null) return nombre + ": NO INICIALIZADO";
+
+    // ========== RENDERIZADO ==========
+    private static void limpiarConsola() {
+        System.out.print("\033[H\033[2J");
+        System.out.flush();
+    }
+
+    // ========== COMUNICACIÓN ==========
+
+    private static void enviarDatosJugador(String nombreJugador, Player jugador, List<Fruit> frutas) {
+        if (jugador == null) return;
         
-        return String.format("%s: Pos(%d,%d) %s%s%s%s", 
-            nombre,
-            jugador.getPosition().getX(), 
-            jugador.getPosition().getY(),
-            jugador.isOnGround() ? "SUELO " : "AIRE ",
-            jugador.isClimbing() ? "ESCALANDO " : "",
-            jugador.isOnVine() ? "ENREDADERA " : "",
-            jugador.isDead() ? "MUERTO " : "");
-    }
-
-    private static void ejecutarInterfazUsuario(Server servidor) {
-        try (Scanner sc = new Scanner(System.in)) {
-            while (true) {
-                System.out.println("\n=== MENÚ SERVIDOR ===");
-                System.out.println("1. Forzar respawn de jugadores");
-                System.out.println("2. Mostrar estado detallado");
-                System.out.println("3. Enviar mensaje manual");
-                System.out.println("4. Cerrar servidor");
-                System.out.print("Selecciona opción: ");
-                
-                String opcion = sc.nextLine();
-
-                switch (opcion) {
-                    case "1" -> {
-                        if (player1 != null) player1.respawn(SPAWN_J1);
-                        if (player2 != null) player2.respawn(SPAWN_J2);
-                        System.out.println("✓ Jugadores respawneados");
-                    }
-                    case "2" -> {
-                        System.out.println("\n=== ESTADO DETALLADO ===");
-                        System.out.println("J1: " + obtenerEstadoJugador(player1, "J1"));
-                        System.out.println("J2: " + obtenerEstadoJugador(player2, "J2"));
-                        System.out.println("Mundo: " + world.getWidth() + "x" + world.getHeight());
-                    }
-                    case "3" -> servidor.opcionEnviarMensaje(sc);
-                    case "4" -> {
-                        servidor.cerrarServidor();
-                        System.out.println("¡Servidor cerrado!");
-                        return;
-                    }
-                    default -> System.out.println("Opción no válida.");
-                }
-            }
+        Socket socket = servidor.getSocketJugador(nombreJugador);
+        if (socket != null) {
+            Coords pos = jugador.getPosition();
+            String json = generarJSON(pos.getX(), pos.getY(), frutas);
+            servidor.enviarA(socket, json);
+            servidor.enviarAMisEspectadores(nombreJugador, json);
         }
     }
 
-    public static String generarJSON(int jx, int jy, List<int[]> entidades, List<int[]> frutas) {
-
+    public static String generarJSON(int jx, int jy, List<Fruit> frutas) {
+        List<int[]> entidadesRandom = generarListaRandom(3);
+        
         StringBuilder sb = new StringBuilder();
         sb.append("{");
 
         // Jugador
         sb.append("\"jugador\": {");
         sb.append("\"x\": ").append(jx).append(", ");
-        sb.append("\"y\": ").append(jy);
+        sb.append("\"y\": ").append(jy).append(", ");
+        sb.append("\"puntos\": ").append(jx); // Usar player.getPoints() cuando esté disponible
         sb.append("},");
 
         // Entidades
         sb.append("\"entidades\": [");
-        for (int i = 0; i < entidades.size(); i++) {
-            int[] e = entidades.get(i);
+        for (int i = 0; i < entidadesRandom.size(); i++) {
+            int[] e = entidadesRandom.get(i);
             sb.append("{\"tipo\": \"entidad\", \"x\": ").append(e[0])
             .append(", \"y\": ").append(e[1]).append("}");
-            if (i < entidades.size() - 1) sb.append(",");
+            if (i < entidadesRandom.size() - 1) sb.append(",");
         }
         sb.append("],");
 
-        // Frutas
+        // Frutas REALES
         sb.append("\"frutas\": [");
-        for (int i = 0; i < frutas.size(); i++) {
-            int[] f = frutas.get(i);
-            sb.append("{\"tipo\": \"fruta\", \"x\": ").append(f[0])
-            .append(", \"y\": ").append(f[1]).append("}");
-            if (i < frutas.size() - 1) sb.append(",");
+        if (frutas != null) {
+            int frutasActivas = 0;
+            for (Fruit fruta : frutas) {
+                if (fruta.isActiva()) {
+                    if (frutasActivas > 0) sb.append(",");
+                    Coords pos = fruta.getPosition();
+                    sb.append("{\"tipo\": \"").append(fruta.getTipo())
+                      .append("\", \"x\": ").append(pos.getX())
+                      .append(", \"y\": ").append(pos.getY())
+                      .append(", \"puntos\": ").append(fruta.getPuntos())
+                      .append("}");
+                    frutasActivas++;
+                }
+            }
         }
         sb.append("]");
 
         sb.append("}");
-
         return sb.toString();
     }
 
-    // FUNCION PARA PRUEBAS
     public static List<int[]> generarListaRandom(int cantidad) {
         Random r = new Random();
         List<int[]> lista = new ArrayList<>();
 
         for (int i = 0; i < cantidad; i++) {
-            int x = r.nextInt(300);  // random 0-299
+            int x = r.nextInt(300);
             int y = r.nextInt(300);
             lista.add(new int[]{x, y});
         }
-
         return lista;
     }
+
+    private static String obtenerEstadoJugador(Player jugador, String nombre) {
+        if (jugador == null) return nombre + ": NO INICIALIZADO";
+        
+        return String.format("%s: Pos(%d,%d) Puntos:%d %s%s%s%s", 
+            nombre,
+            jugador.getPosition().getX(), 
+            jugador.getPosition().getY(),
+            jugador.getPoints(),
+            jugador.isOnGround() ? "SUELO " : "AIRE ",
+            jugador.isClimbing() ? "ESCALANDO " : "",
+            jugador.isOnVine() ? "ENREDADERA " : "",
+            jugador.isDead() ? "MUERTO " : "");
+    }
+
 
 }
