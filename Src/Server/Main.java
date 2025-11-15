@@ -181,42 +181,43 @@ public class Main {
         }
 
         // Procesar mensajes de J1
+        Socket s1 = servidor.getSocketJugador(servidor.J1_NAME);
         if (!servidor.mensajes_j1.isEmpty()) {
             String mensaje = servidor.mensajes_j1.remove(0); // Obtener y remover el primer mensaje
-            Socket s1 = servidor.getSocketJugador(servidor.J1_NAME);
             if (s1 != null) {
                 procesarMovimientoJugador(mensaje, player1, servidor.J1_NAME, servidor );
-            }    
-            
-            List<int[]> entidadesRandom = generarListaRandom(1);
-            List<int[]> frutasRandom    = generarListaRandom(1);
+            }     
+        }
+        if (servidor.J1_ING) {
+            List<int[]> entidadesRandom1 = generarListaRandom(0);
+            List<int[]> frutasRandom1    = generarListaRandom(0);
 
-            String json1 = Main.generarJSON(player1.getPosition().getX(), player1.getPosition().getY(), entidadesRandom, frutasRandom);
+            String json1 = Main.generarJSON(player1.getPosition().getX(), player1.getPosition().getY(), entidadesRandom1, frutasRandom1);
 
             servidor.enviarA(s1, json1);
             servidor.enviarAMisEspectadores(servidor.J1_NAME, json1);
-            System.out.println("✓ Mensaje de J1 procesado: " + mensaje);
-            
+            System.out.println("✓ Mensaje de J1 procesado....");
         }
 
         // Procesar mensajes de J2
+        Socket s2 = servidor.getSocketJugador(servidor.J2_NAME);
         if (!servidor.mensajes_j2.isEmpty()) {
             String mensaje = servidor.mensajes_j2.remove(0); // Obtener y remover el primer mensaje
-            Socket s2 = servidor.getSocketJugador(servidor.J2_NAME);
             if (s2 != null) {
                 procesarMovimientoJugador(mensaje, player2, servidor.J2_NAME, servidor );
             }
+            
+        }
+        if (servidor.J2_ING) {
+            List<int[]> entidadesRandom2 = generarListaRandom(1);
+            List<int[]> frutasRandom2    = generarListaRandom(1);
 
-            List<int[]> entidadesRandom = generarListaRandom(3);
-            List<int[]> frutasRandom    = generarListaRandom(5);
-
-            String json2 = Main.generarJSON(player2.getPosition().getX(), player2.getPosition().getY(), entidadesRandom, frutasRandom);
+            String json2 = Main.generarJSON(player2.getPosition().getX(), player2.getPosition().getY(), entidadesRandom2, frutasRandom2);
 
             // para que por cada frame se manden cambios, esto debe estar fuera del if en un if (servidor.J2_ING == true)
             servidor.enviarA(s2, json2);
             servidor.enviarAMisEspectadores(servidor.J2_NAME, json2);
-            System.out.println("✓ Mensaje de J2 procesado: " + mensaje);
-            
+            System.out.println("✓ Mensaje de J2 procesado....");
         }
         
     }
