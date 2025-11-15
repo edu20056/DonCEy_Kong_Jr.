@@ -1,3 +1,4 @@
+#include "client.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -6,10 +7,12 @@
 #include <termios.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include "raylib.h"
 
+// Variables de conexión
 #define BUFFER_SIZE 1024
-#define SERVER_IP "127.0.0.1"    
-#define SERVER_PORT 5000  
+#define SERVER_IP "127.0.0.1"
+#define SERVER_PORT 5000
 
 int extraer_num(const char *s) {
     int n = 0;
@@ -27,7 +30,7 @@ void procesarJSON(const char *json) {
         char *ypos = strstr(jug, "\"y\"");
 
         if (xpos && ypos) {
-            int x = extraer_num(xpos + 4); // 4 = salto: "x": 
+            int x = extraer_num(xpos + 4);
             int y = extraer_num(ypos + 4);
 
             printf("Jugador: x=%d, y=%d\n", x, y);
@@ -46,7 +49,6 @@ void procesarJSON(const char *json) {
             char *xpos = strstr(p, "\"x\"");
             char *ypos = strstr(p, "\"y\"");
 
-            // salir cuando ya no hay más pares { ... }
             if (!xpos || !ypos) break;
 
             int x = extraer_num(xpos + 4);
@@ -54,7 +56,6 @@ void procesarJSON(const char *json) {
 
             printf("  Entidad: x=%d, y=%d\n", x, y);
 
-            // avanzar búsqueda
             p = ypos + 4;
         }
     }
@@ -90,19 +91,13 @@ void trim_newline(char *str) {
     }
 }
 
-// Funciones para modo sin buffer
 void set_input_mode(void) {
     struct termios tattr;
 
-    // Obtener configuración actual
     tcgetattr(STDIN_FILENO, &tattr);
-
-    // Desactivar modo canónico y eco (no requiere Enter ni muestra las teclas)
     tattr.c_lflag &= ~(ICANON | ECHO);
     tattr.c_cc[VMIN] = 1;
     tattr.c_cc[VTIME] = 0;
-
-    // Aplicar configuración
     tcsetattr(STDIN_FILENO, TCSANOW, &tattr);
 }
 
@@ -113,7 +108,12 @@ void reset_input_mode(void) {
     tcsetattr(STDIN_FILENO, TCSANOW, &tattr);
 }
 
-int main() {
+// =====================================================
+//   ESTA ES LA FUNCIÓN PRINCIPAL DEL CLIENTE
+//   (REEMPLAZA A TU main ORIGINAL)
+// =====================================================
+void *run_client(void *arg) {
+
     int sock;
     struct sockaddr_in server_addr;
     char buffer[BUFFER_SIZE];
@@ -121,7 +121,6 @@ int main() {
     char nombre[50];
     int esJugador = 0;
 
-    // Crear socket
     sock = socket(AF_INET, SOCK_STREAM, 0);
     if (sock < 0) {
         perror("Error al crear socket");
@@ -145,35 +144,32 @@ int main() {
     }
 
     printf("Conectado al servidor Java.\n");
-    
+
     int bienvenida_completa = 0;
     while (!bienvenida_completa) {
         ssize_t bytes = recv(sock, buffer, sizeof(buffer) - 1, 0);
         if (bytes <= 0) {
             printf("Error al recibir bienvenida del servidor\n");
             close(sock);
-            return 1;
+            return NULL;
         }
         buffer[bytes] = '\0';
-        
-        // Mostrar mensaje del servidor
+
         printf("%s", buffer);
-        
-        // Verificar si terminó la bienvenida
+
         if (strstr(buffer, "Conexión Exitosa.") != NULL) {
             bienvenida_completa = 1;
         }
     }
 
-    // Ahora preguntar al usuario qué tipo quiere ser
     printf("\nSeleccione tipo de cliente:\n");
     printf("1. Jugador\n");
     printf("2. Espectador\n");
     printf("> ");
-    
+
     if (fgets(tipo, sizeof(tipo), stdin) == NULL) {
         close(sock);
-        return 1;
+        return NULL;
     }
     trim_newline(tipo);
 
@@ -183,55 +179,51 @@ int main() {
         printf("Nombre del jugador: ");
         if (fgets(nombre, sizeof(nombre), stdin) == NULL) {
             close(sock);
-            return 1;
+            return NULL;
         }
         trim_newline(nombre);
         snprintf(sendbuf, sizeof(sendbuf), "PLAYER %s\n", nombre);
-    } 
+    }
     else if (strcmp(tipo, "2") == 0) {
         esJugador = 0;
         snprintf(sendbuf, sizeof(sendbuf), "SPECTATOR\n");
-    } 
-    else {
-        printf("Opción inválida. Debe ingresar 1 (Jugador) o 2 (Espectador).\n");
-        close(sock);
-        return 1;
     }
-    // Enviar tipo de cliente al servidor
+    else {
+        printf("Opción inválida.\n");
+        close(sock);
+        return NULL;
+    }
+
     printf("Enviando tipo de cliente al servidor: %s", sendbuf);
     send(sock, sendbuf, strlen(sendbuf), 0);
 
     if (esJugador) {
-        // Modo jugador - esperar confirmación
+
         printf("Esperando confirmación del servidor...\n");
-        
-        // Leer toda la respuesta del servidor
+
         while (1) {
             ssize_t bytes = recv(sock, buffer, sizeof(buffer) - 1, 0);
             if (bytes <= 0) {
                 printf("Error del servidor o conexión cerrada\n");
                 close(sock);
-                return 1;
+                return NULL;
             }
             buffer[bytes] = '\0';
-            
+
             printf("Servidor: %s", buffer);
-            
-            // Si recibimos un error, salir
+
             if (strstr(buffer, "ERROR") != NULL) {
                 printf("Error al registrarse. Saliendo...\n");
                 close(sock);
-                return 1;
+                return NULL;
             }
-            
-            // Si recibimos el mensaje de confirmación, continuar
+
             if (strstr(buffer, "OK:") != NULL || strstr(buffer, "Puede comenzar") != NULL) {
                 break;
             }
         }
-        
-        printf("Use las teclas W, A, S, D para moverse. (Escriba 'quit' para salir)\n");
-        printf("> ");
+
+        printf("Use teclas W A S D para moverse. ('q' para salir)\n> ");
         fflush(stdout);
 
         set_input_mode();
@@ -251,7 +243,6 @@ int main() {
                 break;
             }
 
-            // Mensaje del servidor
             if (FD_ISSET(sock, &readfds)) {
                 ssize_t bytes = recv(sock, buffer, sizeof(buffer) - 1, 0);
                 if (bytes <= 0) {
@@ -260,14 +251,11 @@ int main() {
                 }
                 buffer[bytes] = '\0';
 
-                // Procesar el buffer
                 procesarJSON(buffer);
-                 
                 printf("\n%s\n> ", buffer);
                 fflush(stdout);
             }
 
-            // Lectura de tecla (sin Enter)
             if (FD_ISSET(STDIN_FILENO, &readfds)) {
                 char tecla;
                 ssize_t bytes = read(STDIN_FILENO, &tecla, 1);
@@ -282,11 +270,11 @@ int main() {
                     case 'a': case 'A': strcpy(msg, "4"); break;
                     case 'q': case 'Q':
                         printf("Saliendo...\n");
-                        reset_input_mode(); // restaurar terminal
+                        reset_input_mode();
                         close(sock);
                         return 0;
                     default:
-                        continue; // Ignorar otras teclas
+                        continue;
                 }
 
                 strcat(msg, "\n");
@@ -294,90 +282,82 @@ int main() {
             }
         }
 
-    // Restaurar modo normal al salir
-    reset_input_mode();
-    } else {
-        // Modo espectador - VERSIÓN SIMPLIFICADA
-        printf("Modo espectador seleccionado.\n");
-        
-        // Recibir datos hasta encontrar END_PLAYERS_LIST
-        char total_buffer[BUFFER_SIZE * 4] = {0}; // Buffer más grande
+        reset_input_mode();
+    }
+    else {
+        // ===========================
+        //   MODO ESPECTADOR
+        // ===========================
+        printf("Modo espectador.\n");
+
+        char total_buffer[BUFFER_SIZE * 4] = {0};
         int lista_completa = 0;
-        
+
         while (!lista_completa) {
             ssize_t bytes = recv(sock, buffer, sizeof(buffer) - 1, 0);
             if (bytes <= 0) {
-                printf("Error: No se pudo recibir lista de jugadores\n");
+                printf("Error: No se pudo recibir lista\n");
                 close(sock);
-                return 1;
+                return NULL;
             }
             buffer[bytes] = '\0';
             strcat(total_buffer, buffer);
-            
+
             if (strstr(total_buffer, "END_PLAYERS_LIST") != NULL) {
                 lista_completa = 1;
             }
-            
-            // Timeout de seguridad
-            usleep(100000); // 100ms
+
+            usleep(100000);
         }
-        
-        // Mostrar solo la parte de la lista de jugadores
-        char *start_list = strstr(total_buffer, "Jugadores disponibles:");
-        char *end_list = strstr(total_buffer, "END_PLAYERS_LIST");
-        
-        if (start_list && end_list) {
-            *end_list = '\0';
-            printf("%s\n", start_list);
+
+        char *start = strstr(total_buffer, "Jugadores disponibles:");
+        char *end = strstr(total_buffer, "END_PLAYERS_LIST");
+
+        if (start && end) {
+            *end = '\0';
+            printf("%s\n", start);
         } else {
-            printf("Lista recibida:\n%s\n", total_buffer);
+            printf("%s\n", total_buffer);
         }
-        
-        // Resto del código igual...
-        printf("Ingrese el numero de jugador por espectear: ");
+
+        printf("Ingrese el número de jugador a espectear: ");
         if (fgets(nombre, sizeof(nombre), stdin) == NULL) {
             close(sock);
-            return 1;
+            return NULL;
         }
         trim_newline(nombre);
-        
-        // Enviar nombre del jugador al servidor CON newline
-        char nombre_con_newline[BUFFER_SIZE * 2 ];
-        snprintf(nombre_con_newline, sizeof(nombre_con_newline), "%s\n", nombre);
-        send(sock, nombre_con_newline, strlen(nombre_con_newline), 0);
-        
-        // Esperar confirmación y recibir mensajes
-        printf("Esperando confirmación del servidor...\n");
-        
+
+        char nombre_con_nl[BUFFER_SIZE * 2];
+        snprintf(nombre_con_nl, sizeof(nombre_con_nl), "%s\n", nombre);
+        send(sock, nombre_con_nl, strlen(nombre_con_nl), 0);
+
+        printf("Esperando confirmación...\n");
+
         while (1) {
             ssize_t bytes = recv(sock, buffer, sizeof(buffer) - 1, 0);
             if (bytes <= 0) {
-                printf("Conexión con el servidor terminada.\n");
+                printf("Conexión terminada.\n");
                 break;
             }
             buffer[bytes] = '\0';
-            
-            // Si es un error, salir
+
             if (strstr(buffer, "ERROR") != NULL) {
                 printf("Error: %s\n", buffer);
                 break;
             }
-            
-            // Si es confirmación, mostrar y continuar
+
             if (strstr(buffer, "OK:") != NULL || strstr(buffer, "Conectado") != NULL) {
                 printf("Servidor: %s", buffer);
-                printf("\n=== Modo Espectador activado ===\n");
-                printf("Recibiendo mensajes...\n\n");
+                printf("\n=== Modo Espectador Activado ===\n");
                 continue;
             }
-            
+
             procesarJSON(buffer);
-            // Mostrar mensajes normales
             printf("%s", buffer);
         }
     }
 
     close(sock);
     printf("Conexión cerrada.\n");
-    return 0;
+    return NULL;
 }

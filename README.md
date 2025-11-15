@@ -73,7 +73,7 @@ The server maintains the global game state and coordinates communication between
 
 3. **Compile the Client Application**
    ```bash
-   gcc client.c -o client
+   gcc main.c client.c graphics.c -lraylib -lm -lpthread -o main
    ```
 
 4. **Execute the Client**
