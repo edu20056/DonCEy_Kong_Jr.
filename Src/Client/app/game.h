@@ -9,21 +9,18 @@
 #define MAX_CROCS 50
 #define MAX_LIANAS 20
 #define MAX_FRUITS 50
-
 // ------------------------------------
 // Jugador básico
 // ------------------------------------
 typedef struct {
     int x, y;
 } Player;
-
 // ------------------------------------
 // Cocodrilos agregados por consola
 // ------------------------------------
 typedef struct {
     int x, y, w, h;
 } Crocodile;
-
 // ------------------------------------
 // Frutas agregadas por consola
 // ------------------------------------
@@ -31,9 +28,8 @@ typedef struct {
     int x, y, w, h;
     int type;   // 0 = banana, 1 = orange, 2 = strawberry
 } Fruit;
-
 // ------------------------------------
-// Lianas simples
+// Lianas
 // ------------------------------------
 typedef struct {
     int x, y, w, h;
@@ -53,8 +49,6 @@ typedef struct {
 typedef struct {
     int x, y, w, h;
 } UnderLedge;
-
-
 // ------------------------------------
 // Estado general del juego
 // ------------------------------------
@@ -113,8 +107,6 @@ typedef struct {
     Player player;
 
 } GameState;
-
-
 // ------------------------------------
 // Funciones
 // ------------------------------------

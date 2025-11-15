@@ -9,53 +9,53 @@ void loadGame(GameState *game)
     SDL_Surface *surface;
 
     // ===== Fondo =====
-    surface = IMG_Load("img/background.png");
+    surface = IMG_Load("Visuals/sprites/menu/background.png");
     if (!surface) { printf("Falta background.png\n"); exit(1); }
     game->background = SDL_CreateTextureFromSurface(game->renderer, surface);
     SDL_FreeSurface(surface);
 
     // ===== Menú =====
-    surface = IMG_Load("img/menu2.png");
+    surface = IMG_Load("Visuals/sprites/menu/menu2.png");
     if (!surface) { printf("Falta menu2.png\n"); exit(1); }
     game->menu = SDL_CreateTextureFromSurface(game->renderer, surface);
     SDL_FreeSurface(surface);
 
     // ===== Jugador =====
-    surface = IMG_Load("img/jr_a.png");
+    surface = IMG_Load("Visuals/sprites/Jr/dkjr_cambiar_cuerda_der.png");
     if (!surface) { printf("Falta jr_a.png\n"); exit(1); }
     game->playerIdle = SDL_CreateTextureFromSurface(game->renderer, surface);
     SDL_FreeSurface(surface);
 
     // ===== Cocodrilo azul =====
-    surface = IMG_Load("img/kremling_blue_d.png");
-    if (!surface) { printf("Falta kremling_blue_d.png\n"); exit(1); }
+    surface = IMG_Load("Visuals/sprites/cocos/movimiento/krem_blue_de.png");
+    if (!surface) { printf("Falta krem_blue_de.png\n"); exit(1); }
     game->crocTexture = SDL_CreateTextureFromSurface(game->renderer, surface);
     SDL_FreeSurface(surface);
     game->crocCount = 0;
 
     // ======== FRUTAS ========
-    surface = IMG_Load("img/fruit_bananas.png");
+    surface = IMG_Load("Visuals/sprites/frutas/fruit_bananas.png");
     game->bananaTex = SDL_CreateTextureFromSurface(game->renderer, surface);
     SDL_FreeSurface(surface);
 
-    surface = IMG_Load("img/fruit_oranges.png");
+    surface = IMG_Load("Visuals/sprites/frutas/fruit_oranges.png");
     game->orangeTex = SDL_CreateTextureFromSurface(game->renderer, surface);
     SDL_FreeSurface(surface);
 
-    surface = IMG_Load("img/fruit_strawberry.png");
+    surface = IMG_Load("Visuals/sprites/frutas/fruit_strawberry.png");
     game->strawberryTex = SDL_CreateTextureFromSurface(game->renderer, surface);
     SDL_FreeSurface(surface);
 
     game->fruitCount = 0;
 
     // ===== Plataforma superior (brick) =====
-    surface = IMG_Load("img/platform.png");
+    surface = IMG_Load("Visuals/sprites/menu/platform.png");
     if (!surface) { printf("Falta platform.png\n"); exit(1); }
     game->brick = SDL_CreateTextureFromSurface(game->renderer, surface);
     SDL_FreeSurface(surface);
 
     for (int i = 0; i < 100; i++) {
-        game->ledges[i].w = 0; // por defecto invisible
+        game->ledges[i].w = 0;
     }
 
     game->ledges[94] = (Ledge){552, 368, 190, 22};
@@ -66,7 +66,7 @@ void loadGame(GameState *game)
     game->ledges[99] = (Ledge){120, 415, 145, 22};
 
     // ===== Plataforma inferior =====
-    surface = IMG_Load("img/downplatform.png");
+    surface = IMG_Load("Visuals/sprites/menu/downplatform.png");
     if (!surface) { printf("Falta downplatform.png\n"); exit(1); }
     game->platform = SDL_CreateTextureFromSurface(game->renderer, surface);
     SDL_FreeSurface(surface);
@@ -82,32 +82,32 @@ void loadGame(GameState *game)
     game->underledges[99] = (UnderLedge){0,   618, 188, 100};
 
     // ===== Mario =====
-    surface = IMG_Load("img/mario.png");
+    surface = IMG_Load("Visuals/sprites/menu/mario.png");
     game->mario = SDL_CreateTextureFromSurface(game->renderer, surface);
     SDL_FreeSurface(surface);
 
     // ===== Donkey Kong =====
-    surface = IMG_Load("img/dk.png");
+    surface = IMG_Load("Visuals/sprites/menu/dk.png");
     game->dk = SDL_CreateTextureFromSurface(game->renderer, surface);
     SDL_FreeSurface(surface);
 
     // ===== Jaula =====
-    surface = IMG_Load("img/jail.png");
+    surface = IMG_Load("Visuals/sprites/menu/jail.png");
     game->jail = SDL_CreateTextureFromSurface(game->renderer, surface);
     SDL_FreeSurface(surface);
 
     // ===== Scoreholder =====
-    surface = IMG_Load("img/scoreholder.png");
+    surface = IMG_Load("Visuals/sprites/menu/scoreholder.png");
     game->scoreholder = SDL_CreateTextureFromSurface(game->renderer, surface);
     SDL_FreeSurface(surface);
 
     // ===== Hearts =====
-    surface = IMG_Load("img/heart.png");
+    surface = IMG_Load("Visuals/sprites/menu/heart.png");
     game->heart = SDL_CreateTextureFromSurface(game->renderer, surface);
     SDL_FreeSurface(surface);
 
     // ===== Llave =====
-    surface = IMG_Load("img/safetkey.png");
+    surface = IMG_Load("Visuals/sprites/menu/safetkey.png");
     game->safetyKey = SDL_CreateTextureFromSurface(game->renderer, surface);
     SDL_FreeSurface(surface);
 
@@ -116,7 +116,7 @@ void loadGame(GameState *game)
     game->safekey.w = 50;
 
     // ===== Lianas =====
-    surface = IMG_Load("img/liana.png");
+    surface = IMG_Load("Visuals/sprites/menu/liana.png");
     game->liana = SDL_CreateTextureFromSurface(game->renderer, surface);
     SDL_FreeSurface(surface);
 
@@ -137,8 +137,8 @@ void loadGame(GameState *game)
     Mix_Init(MIX_INIT_MP3);
     Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048);
 
-    game->openingMusic = Mix_LoadMUS("audio/03_Opening.mp3");
-    game->bgMusic      = Mix_LoadMUS("audio/02_Stage1.mp3");
+    game->openingMusic = Mix_LoadMUS("Visuals/audio/03_Opening.mp3");
+    game->bgMusic      = Mix_LoadMUS("Visuals/audio/02_Stage1.mp3");
 
     Mix_PlayMusic(game->openingMusic, -1);
 
@@ -151,8 +151,6 @@ void loadGame(GameState *game)
 
     game->windowPage = 0;
 }
-
-
 // -------------------------------------------------------
 // AGREGAR COCODRILO
 // -------------------------------------------------------
@@ -173,7 +171,6 @@ void addCroc(GameState *game, int x, int y)
 
     printf(">> Cocodrilo agregado en (%d, %d)\n", x, y);
 }
-
 // -------------------------------------------------------
 // ELIMINAR COCODRILO POR ÍNDICE
 // -------------------------------------------------------
@@ -189,9 +186,6 @@ void removeCroc(GameState *game, int index)
 
     printf(">> Cocodrilo %d eliminado\n", index);
 }
-
-
-
 // -------------------------------------------------------
 // AGREGAR FRUTA
 // -------------------------------------------------------
@@ -213,7 +207,9 @@ void addFruit(GameState *game, int x, int y, int type)
 
     printf(">> Fruta agregada (%d,%d) tipo=%d\n", x, y, type);
 }
-
+// -------------------------------------------------------
+// ELIMINAR FRUTA POR ÍNDICE
+// -------------------------------------------------------
 void removeFruit(GameState *game, int index)
 {
     if (index < 0 || index >= game->fruitCount) {
@@ -226,9 +222,6 @@ void removeFruit(GameState *game, int index)
 
     printf(">> Fruta %d eliminada\n", index);
 }
-
-
-
 // -------------------------------------------------------
 // PROCESO DE EVENTOS
 // -------------------------------------------------------

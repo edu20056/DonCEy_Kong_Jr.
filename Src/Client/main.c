@@ -18,6 +18,6 @@ int main(int argc, char *argv[]) {
 
 
 // -------------------------------------------------------
-// para compilar: gcc -o DonCEYKongJr     main.c controller.c app/game.c     $(pkg-config --cflags --libs sdl2 SDL2_image SDL2_mixer SDL2_ttf)
+// para compilar, se debe de estar en el directorio de main del cliente: gcc -o DonCEYKongJr     main.c controller.c app/game.c     $(pkg-config --cflags --libs sdl2 SDL2_image SDL2_mixer SDL2_ttf)
 // -------------------------------------------------------
 //para ejecutar:   ./DonCEYKongJr

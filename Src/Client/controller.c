@@ -10,7 +10,6 @@ SDL_Window *window;
 SDL_Renderer *renderer;
 
 static int running = 1;
-
 // =========================================
 // HILO PARA LEER COMANDOS DESDE CONSOLA
 // =========================================
@@ -138,10 +137,6 @@ void *consoleThread(void *arg) {
 
     return NULL;
 }
-
-
-
-
 // =========================================
 // EJECUCIÓN PRINCIPAL DEL JUEGO
 // =========================================
@@ -162,7 +157,7 @@ void runGame() {
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
     gameState.renderer = renderer;
-    gameState.crocCount = 0; // Muy importante
+    gameState.crocCount = 0; 
     loadGame(&gameState);
 
     // ====================================
