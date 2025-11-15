@@ -11,6 +11,78 @@
 #define SERVER_IP "127.0.0.1"    
 #define SERVER_PORT 5000  
 
+int extraer_num(const char *s) {
+    int n = 0;
+    sscanf(s, "%d", &n);
+    return n;
+}
+
+void procesarJSON(const char *json) {
+    // ===========================
+    //   JUGADOR
+    // ===========================
+    char *jug = strstr(json, "\"jugador\"");
+    if (jug) {
+        char *xpos = strstr(jug, "\"x\"");
+        char *ypos = strstr(jug, "\"y\"");
+
+        if (xpos && ypos) {
+            int x = extraer_num(xpos + 4); // 4 = salto: "x": 
+            int y = extraer_num(ypos + 4);
+
+            printf("Jugador: x=%d, y=%d\n", x, y);
+        }
+    }
+
+    // ===========================
+    //   ENTIDADES
+    // ===========================
+    printf("Entidades:\n");
+
+    char *ent = strstr(json, "\"entidades\"");
+    if (ent) {
+        char *p = ent;
+        while (1) {
+            char *xpos = strstr(p, "\"x\"");
+            char *ypos = strstr(p, "\"y\"");
+
+            // salir cuando ya no hay más pares { ... }
+            if (!xpos || !ypos) break;
+
+            int x = extraer_num(xpos + 4);
+            int y = extraer_num(ypos + 4);
+
+            printf("  Entidad: x=%d, y=%d\n", x, y);
+
+            // avanzar búsqueda
+            p = ypos + 4;
+        }
+    }
+
+    // ===========================
+    //   FRUTAS
+    // ===========================
+    printf("Frutas:\n");
+
+    char *fru = strstr(json, "\"frutas\"");
+    if (fru) {
+        char *p = fru;
+        while (1) {
+            char *xpos = strstr(p, "\"x\"");
+            char *ypos = strstr(p, "\"y\"");
+
+            if (!xpos || !ypos) break;
+
+            int x = extraer_num(xpos + 4);
+            int y = extraer_num(ypos + 4);
+
+            printf("  Fruta: x=%d, y=%d\n", x, y);
+
+            p = ypos + 4;
+        }
+    }
+}
+
 void trim_newline(char *str) {
     size_t len = strlen(str);
     while (len > 0 && (str[len - 1] == '\n' || str[len - 1] == '\r')) {
@@ -134,89 +206,93 @@ int main() {
         printf("Esperando confirmación del servidor...\n");
         
         // Leer toda la respuesta del servidor
-            while (1) {
-                ssize_t bytes = recv(sock, buffer, sizeof(buffer) - 1, 0);
-                if (bytes <= 0) {
-                    printf("Error del servidor o conexión cerrada\n");
-                    close(sock);
-                    return 1;
-                }
-                buffer[bytes] = '\0';
-                
-                printf("Servidor: %s", buffer);
-                
-                // Si recibimos un error, salir
-                if (strstr(buffer, "ERROR") != NULL) {
-                    printf("Error al registrarse. Saliendo...\n");
-                    close(sock);
-                    return 1;
-                }
-                
-                // Si recibimos el mensaje de confirmación, continuar
-                if (strstr(buffer, "OK:") != NULL || strstr(buffer, "Puede comenzar") != NULL) {
-                    break;
-                }
+        while (1) {
+            ssize_t bytes = recv(sock, buffer, sizeof(buffer) - 1, 0);
+            if (bytes <= 0) {
+                printf("Error del servidor o conexión cerrada\n");
+                close(sock);
+                return 1;
+            }
+            buffer[bytes] = '\0';
+            
+            printf("Servidor: %s", buffer);
+            
+            // Si recibimos un error, salir
+            if (strstr(buffer, "ERROR") != NULL) {
+                printf("Error al registrarse. Saliendo...\n");
+                close(sock);
+                return 1;
             }
             
-            printf("Use las teclas W, A, S, D para moverse. (Escriba 'quit' para salir)\n");
-            printf("> ");
-            fflush(stdout);
+            // Si recibimos el mensaje de confirmación, continuar
+            if (strstr(buffer, "OK:") != NULL || strstr(buffer, "Puede comenzar") != NULL) {
+                break;
+            }
+        }
+        
+        printf("Use las teclas W, A, S, D para moverse. (Escriba 'quit' para salir)\n");
+        printf("> ");
+        fflush(stdout);
 
-            set_input_mode();
+        set_input_mode();
 
-            fd_set readfds;
+        fd_set readfds;
 
-            while (1) {
-                FD_ZERO(&readfds);
-                FD_SET(sock, &readfds);
-                FD_SET(STDIN_FILENO, &readfds);
+        while (1) {
+            FD_ZERO(&readfds);
+            FD_SET(sock, &readfds);
+            FD_SET(STDIN_FILENO, &readfds);
 
-                int max_fd = (sock > STDIN_FILENO) ? sock : STDIN_FILENO;
-                int activity = select(max_fd + 1, &readfds, NULL, NULL, NULL);
+            int max_fd = (sock > STDIN_FILENO) ? sock : STDIN_FILENO;
+            int activity = select(max_fd + 1, &readfds, NULL, NULL, NULL);
 
-                if (activity < 0) {
-                    perror("Error en select");
+            if (activity < 0) {
+                perror("Error en select");
+                break;
+            }
+
+            // Mensaje del servidor
+            if (FD_ISSET(sock, &readfds)) {
+                ssize_t bytes = recv(sock, buffer, sizeof(buffer) - 1, 0);
+                if (bytes <= 0) {
+                    printf("\nServidor desconectado.\n");
                     break;
                 }
+                buffer[bytes] = '\0';
 
-                // Mensaje del servidor
-                if (FD_ISSET(sock, &readfds)) {
-                    ssize_t bytes = recv(sock, buffer, sizeof(buffer) - 1, 0);
-                    if (bytes <= 0) {
-                        printf("\nServidor desconectado.\n");
-                        break;
-                    }
-                    buffer[bytes] = '\0';
-                    printf("\n%s\n> ", buffer);
-                    fflush(stdout);
-                }
-
-                // Lectura de tecla (sin Enter)
-                if (FD_ISSET(STDIN_FILENO, &readfds)) {
-                    char tecla;
-                    ssize_t bytes = read(STDIN_FILENO, &tecla, 1);
-                    if (bytes <= 0) continue;
-
-                    char msg[4] = {0};
-
-                    switch (tecla) {
-                        case 'w': case 'W': strcpy(msg, "1"); break;
-                        case 'd': case 'D': strcpy(msg, "2"); break;
-                        case 's': case 'S': strcpy(msg, "3"); break;
-                        case 'a': case 'A': strcpy(msg, "4"); break;
-                        case 'q': case 'Q':
-                            printf("Saliendo...\n");
-                            reset_input_mode(); // restaurar terminal
-                            close(sock);
-                            return 0;
-                        default:
-                            continue; // Ignorar otras teclas
-                    }
-
-                    strcat(msg, "\n");
-                    send(sock, msg, strlen(msg), 0);
-                }
+                // Procesar el buffer
+                procesarJSON(buffer);
+                 
+                printf("\n%s\n> ", buffer);
+                fflush(stdout);
             }
+
+            // Lectura de tecla (sin Enter)
+            if (FD_ISSET(STDIN_FILENO, &readfds)) {
+                char tecla;
+                ssize_t bytes = read(STDIN_FILENO, &tecla, 1);
+                if (bytes <= 0) continue;
+
+                char msg[4] = {0};
+
+                switch (tecla) {
+                    case 'w': case 'W': strcpy(msg, "1"); break;
+                    case 'd': case 'D': strcpy(msg, "2"); break;
+                    case 's': case 'S': strcpy(msg, "3"); break;
+                    case 'a': case 'A': strcpy(msg, "4"); break;
+                    case 'q': case 'Q':
+                        printf("Saliendo...\n");
+                        reset_input_mode(); // restaurar terminal
+                        close(sock);
+                        return 0;
+                    default:
+                        continue; // Ignorar otras teclas
+                }
+
+                strcat(msg, "\n");
+                send(sock, msg, strlen(msg), 0);
+            }
+        }
 
     // Restaurar modo normal al salir
     reset_input_mode();
@@ -295,6 +371,7 @@ int main() {
                 continue;
             }
             
+            procesarJSON(buffer);
             // Mostrar mensajes normales
             printf("%s", buffer);
         }
