@@ -57,7 +57,6 @@ public class Main {
                 gestionarJugadores();
                 procesarMensajesEntrantes();
                 actualizarJuego();
-                renderWorld();
                 
                 try {
                     Thread.sleep(GAME_LOOP_DELAY);
@@ -68,8 +67,6 @@ public class Main {
         });
         gameThread.setDaemon(true);
         gameThread.start();
-
-        ejecutarInterfazUsuario();
     }
 
     // ========== GESTIÓN DE JUGADORES ==========
@@ -344,128 +341,10 @@ public class Main {
         }
     }
 
-    private static void enviarConfirmacionMovimiento(String nombreJugador, String accion, Player jugador) {
-        String estadoActual = obtenerEstadoJugador(jugador, nombreJugador);
-        String mensajeCompleto = nombreJugador + " " + accion + " | " + estadoActual;
-        
-        Socket socket = servidor.getSocketJugador(nombreJugador);
-        if (socket != null) {
-            servidor.enviarA(socket, mensajeCompleto);
-        }
-        servidor.enviarAMisEspectadores(nombreJugador, mensajeCompleto);
-    }
-
     // ========== RENDERIZADO ==========
-
-    public static void renderWorld() {
-        limpiarConsola();
-        
-        StringBuilder sb = new StringBuilder();
-        sb.append("=== SERVIDOR - VISTA GENERAL ===\n\n");
-        
-        sb.append("=== JUGADOR 1 ===\n");
-        if (j1Activo && player1 != null && world1 != null) {
-            renderMundoIndividual(sb, world1, player1, cocodrilosJ1, frutasJ1, "J1");
-        } else {
-            sb.append("NO CONECTADO\n");
-        }
-        
-        sb.append("\n=== JUGADOR 2 ===\n");
-        if (j2Activo && player2 != null && world2 != null) {
-            renderMundoIndividual(sb, world2, player2, cocodrilosJ2, frutasJ2, "J2");
-        } else {
-            sb.append("NO CONECTADO\n");
-        }
-        
-        sb.append("\nJugadores conectados: ").append(servidor.getJugadoresSize()).append("\n");
-        sb.append("Esperando conexiones...\n");
-        System.out.print(sb.toString());
-    }
-    
     private static void limpiarConsola() {
         System.out.print("\033[H\033[2J");
         System.out.flush();
-    }
-    
-    private static void renderMundoIndividual(StringBuilder sb, World world, Player jugador, 
-                                             List<Coco> cocodrilos, List<Fruit> frutas, String nombre) {
-        int width = world.getWidth();
-        int height = world.getHeight();
-        
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                Coords currentPos = new Coords(x, y);
-                char symbol = obtenerSimboloPosicion(currentPos, jugador, cocodrilos, frutas, world);
-                sb.append(symbol);
-            }
-            sb.append('\n');
-        }
-        
-        sb.append(obtenerInfoEstadoJugador(jugador, cocodrilos, frutas, nombre));
-    }
-    
-    private static char obtenerSimboloPosicion(Coords pos, Player jugador, List<Coco> cocodrilos, List<Fruit> frutas, World world) {
-        // Verificar jugador
-        if (jugador != null && !jugador.isDead() && jugador.getPosition().equals(pos)) {
-            return jugador.isFacingRight() ? '→' : '←';
-        }
-        
-        // Verificar cocodrilos
-        for (Coco cocodrilo : cocodrilos) {
-            if (cocodrilo.isActivo() && cocodrilo.getPosition().equals(pos)) {
-                return cocodrilo.getTipo().equals("ROJO") ? 'R' : 'A';
-            }
-        }
-        
-        // Verificar frutas
-        for (Fruit fruta : frutas) {
-            if (fruta.isActiva() && fruta.getPosition().equals(pos)) {
-                return obtenerSimboloFruta(fruta.getTipo());
-            }
-        }
-        
-        // Mostrar tile del mundo
-        TileType tile = world.getTile(pos);
-        switch (tile) {
-            case EMPTY: return ' ';
-            case VINE: return 'H';
-            case PLATFORM: return '=';
-            case WATER: return '~';
-            case GOAL: return 'X';
-            default: return '?';
-        }
-    }
-    
-    private static char obtenerSimboloFruta(String tipo) {
-        switch (tipo) {
-            case "MANZANA": return 'M';
-            case "BANANA": return 'B';
-            case "FRUTILLA": return 'F';
-            case "UVA": return 'U';
-            case "NARANJA": return 'N';
-            default: return '?';
-        }
-    }
-    
-    private static String obtenerInfoEstadoJugador(Player jugador, List<Coco> cocodrilos, List<Fruit> frutas, String nombre) {
-        Coords pos = jugador.getPosition();
-        StringBuilder info = new StringBuilder();
-        
-        info.append(String.format("Pos(%d,%d) ", pos.getX(), pos.getY()));
-        info.append("Puntos: ").append(jugador.getPoints()).append(" | ");
-        if (jugador.isOnGround()) info.append("[SUELO] ");
-        if (jugador.isOnVine()) info.append("[ENREDADERA] ");
-        if (jugador.isClimbing()) info.append("[ESCALANDO] ");
-        if (jugador.isDead()) info.append("[MUERTO] ");
-        info.append("\n");
-            
-        int cocodrilosActivos = (int) cocodrilos.stream().filter(Coco::isActivo).count();
-        int frutasActivas = (int) frutas.stream().filter(Fruit::isActiva).count();
-        info.append("Cocodrilos: ").append(cocodrilosActivos)
-            .append(" | Frutas: ").append(frutasActivas).append("/").append(frutas.size())
-            .append("\n");
-        
-        return info.toString();
     }
 
     // ========== COMUNICACIÓN ==========
@@ -554,77 +433,5 @@ public class Main {
             jugador.isDead() ? "MUERTO " : "");
     }
 
-    // ========== INTERFAZ DE USUARIO ==========
 
-    private static void ejecutarInterfazUsuario() {
-        try (Scanner sc = new Scanner(System.in)) {
-            while (true) {
-                System.out.println("\n=== MENÚ SERVIDOR ===");
-                System.out.println("1. Forzar respawn de jugadores");
-                System.out.println("2. Mostrar estado detallado");
-                System.out.println("3. Recargar frutas");
-                System.out.println("4. Enviar mensaje manual");
-                System.out.println("5. Cerrar servidor");
-                System.out.print("Selecciona opción: ");
-                
-                String opcion = sc.nextLine();
-
-                switch (opcion) {
-                    case "1" -> forzarRespawnJugadores();
-                    case "2" -> mostrarEstadoDetallado();
-                    case "3" -> recargarFrutas();
-                    case "4" -> servidor.opcionEnviarMensaje(sc);
-                    case "5" -> {
-                        servidor.cerrarServidor();
-                        System.out.println("¡Servidor cerrado!");
-                        return;
-                    }
-                    default -> System.out.println("Opción no válida.");
-                }
-            }
-        }
-    }
-
-    private static void forzarRespawnJugadores() {
-        if (j1Activo && player1 != null) {
-            player1.respawn(SPAWN_J1);
-            System.out.println("✓ Jugador 1 respawneado");
-        }
-        if (j2Activo && player2 != null) {
-            player2.respawn(SPAWN_J2);
-            System.out.println("✓ Jugador 2 respawneado");
-        }
-    }
-
-    private static void recargarFrutas() {
-        if (j1Activo) {
-            inicializarFrutasJ1();
-            System.out.println("✓ Frutas recargadas para J1");
-        }
-        if (j2Activo) {
-            inicializarFrutasJ2();
-            System.out.println("✓ Frutas recargadas para J2");
-        }
-    }
-
-    private static void mostrarEstadoDetallado() {
-        System.out.println("\n=== ESTADO DETALLADO ===");
-        System.out.println("J1: " + (j1Activo ? obtenerEstadoJugador(player1, "J1") : "NO CONECTADO"));
-        System.out.println("J2: " + (j2Activo ? obtenerEstadoJugador(player2, "J2") : "NO CONECTADO"));
-        System.out.println("Jugadores conectados: " + servidor.getJugadoresSize());
-        
-        if (j1Activo) {
-            int cocodrilosActivosJ1 = (int) cocodrilosJ1.stream().filter(Coco::isActivo).count();
-            int frutasActivasJ1 = (int) frutasJ1.stream().filter(Fruit::isActiva).count();
-            System.out.println("Cocodrilos J1 activos: " + cocodrilosActivosJ1);
-            System.out.println("Frutas J1 activas: " + frutasActivasJ1 + "/" + frutasJ1.size());
-        }
-        
-        if (j2Activo) {
-            int cocodrilosActivosJ2 = (int) cocodrilosJ2.stream().filter(Coco::isActivo).count();
-            int frutasActivasJ2 = (int) frutasJ2.stream().filter(Fruit::isActiva).count();
-            System.out.println("Cocodrilos J2 activos: " + cocodrilosActivosJ2);
-            System.out.println("Frutas J2 activas: " + frutasActivasJ2 + "/" + frutasJ2.size());
-        }
-    }
 }
