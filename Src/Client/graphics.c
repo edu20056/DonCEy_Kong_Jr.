@@ -88,9 +88,6 @@ static void DrawTile(Texture2D tex, int x, int y) {
 // Dibujar todo el mapa
 // ======================================================
 void DrawMap() {
-    BeginDrawing();
-    ClearBackground(BLACK);
-
     for (int y = 0; y < MAP_HEIGHT; y++) {
         for (int x = 0; x < MAP_WIDTH; x++) {
 
@@ -106,8 +103,6 @@ void DrawMap() {
             }
         }
     }
-
-    EndDrawing();
 }
 
 // ======================================================
