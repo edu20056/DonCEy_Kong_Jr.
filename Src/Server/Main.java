@@ -188,10 +188,10 @@ public class Main {
                 procesarMovimientoJugador(mensaje, player1, servidor.J1_NAME, servidor );
             }    
             
-            List<int[]> entidadesRandom = generarListaRandom(3);
-            List<int[]> frutasRandom    = generarListaRandom(5);
+            List<int[]> entidadesRandom = generarListaRandom(1);
+            List<int[]> frutasRandom    = generarListaRandom(1);
 
-            String json1 = Main.generarJSON(12, 12, entidadesRandom, frutasRandom);
+            String json1 = Main.generarJSON(player1.getPosition().getX(), player1.getPosition().getY(), entidadesRandom, frutasRandom);
 
             servidor.enviarA(s1, json1);
             servidor.enviarAMisEspectadores(servidor.J1_NAME, json1);
@@ -210,7 +210,7 @@ public class Main {
             List<int[]> entidadesRandom = generarListaRandom(3);
             List<int[]> frutasRandom    = generarListaRandom(5);
 
-            String json2 = Main.generarJSON(12, 12, entidadesRandom, frutasRandom);
+            String json2 = Main.generarJSON(player2.getPosition().getX(), player2.getPosition().getY(), entidadesRandom, frutasRandom);
 
             // para que por cada frame se manden cambios, esto debe estar fuera del if en un if (servidor.J2_ING == true)
             servidor.enviarA(s2, json2);

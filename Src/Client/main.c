@@ -29,9 +29,14 @@ typedef struct {
     int y;
 } Fruta;
 
-// Jugador
-int jugadorX = 0;
-int jugadorY = 0;
+typedef struct {
+    int x;
+    int y;
+    int direccion;
+} Jugador;
+
+// Instancia global del jugador
+Jugador jugador = {10, 10, 0};
 
 // Entidades dinámicas
 #define MAX_ENTIDADES 100
@@ -54,13 +59,32 @@ void procesarJSON(const char *json) {
     // ===========================
     char *jug = strstr(json, "\"jugador\"");
     if (jug) {
-        char *xpos = strstr(jug, "\"x\"");
-        char *ypos = strstr(jug, "\"y\"");
 
-        if (xpos && ypos) {
-            jugadorX = extraer_num(xpos + 4);
-            jugadorY = extraer_num(ypos + 4);
+        // Ir al primer '{' después de "jugador"
+        char *inicio = strchr(jug, '{');
+        if (!inicio) return;
+
+        // Buscar el cierre correcto del bloque '}'
+        char *fin = inicio;
+        int llaves = 0;
+        do {
+            if (*fin == '{') llaves++;
+            if (*fin == '}') llaves--;
+            fin++;
+        } while (llaves > 0 && *fin);
+
+        // Ahora solo busco x,y DENTRO de [inicio, fin)
+        char *xpos = strstr(inicio, "\"x\"");
+        if (xpos && xpos < fin) {
+            jugador.x = extraer_num(xpos + 4)* 20;
         }
+
+        char *ypos = strstr(inicio, "\"y\"");
+        if (ypos && ypos < fin) {
+            jugador.y = extraer_num(ypos + 4) * 20;
+        }
+
+        printf("[DEBUG] Jugador actualizado -> (%d, %d)\n", jugador.x, jugador.y);
     }
 
     // ===========================
@@ -394,7 +418,7 @@ int main() {
 
         DrawMap();
 
-        DrawSpriteAt(jr_a, jugadorX, jugadorY, 3); // cambiar 3 por sprite de direccion
+        DrawSpriteAt(jr_a, jugador.x, jugador.y, 3); // cambiar 3 por sprite de direccion
         if (numEntidades > 0) {
             for (int i = 0; i < numEntidades; i++) {
                 DrawSpriteAt(CB_d, entidades[i].x, entidades[i].y, 3);
