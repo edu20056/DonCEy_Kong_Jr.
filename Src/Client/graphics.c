@@ -3,6 +3,15 @@
 #include <stdlib.h>
 
 char map[MAP_HEIGHT][MAP_WIDTH + 1];
+Texture2D jr_a;
+Texture2D jr_b;
+Texture2D f_ban;
+Texture2D f_or;
+Texture2D f_str;
+Texture2D CR_d;
+Texture2D CR_u;
+Texture2D CB_d;
+Texture2D CB_u;
 
 // ======================================================
 // Cargar mapa desde archivo
@@ -42,11 +51,29 @@ static Texture2D mario;
 void InitGraphics() {
     InitWindow(MAP_WIDTH * TILE_SIZE, MAP_HEIGHT * TILE_SIZE, "Mapa DonCEYkong Jr");
 
+    // Tiles
     water    = LoadTexture("Sprites/water.png");
     liana    = LoadTexture("Sprites/liana.png");
     platform = LoadTexture("Sprites/platform.png");
     mario    = LoadTexture("Sprites/mario.png");
+
+    // Jugador
+    jr_a     = LoadTexture("Sprites/Jr/jr_a.png"); 
+    jr_b     = LoadTexture("Sprites/Jr/jr_b.png");  // <-- NO SOBREESCRIBIR
+
+    // Frutas
+    f_ban    = LoadTexture("Sprites/Fruits/fruit_bananas.png"); 
+    f_or     = LoadTexture("Sprites/Fruits/fruit_oranges.png"); 
+    f_str    = LoadTexture("Sprites/Fruits/fruit_strawberry.png"); 
+
+    // Enemigos
+    CR_d     = LoadTexture("Sprites/Enemies/Red/kremling_red_d.png"); 
+    CR_u     = LoadTexture("Sprites/Enemies/Red/kremling_red_u.png"); 
+
+    CB_d     = LoadTexture("Sprites/Enemies/Blue/kremling_blue_d.png"); 
+    CB_u     = LoadTexture("Sprites/Enemies/Blue/kremling_blue.png"); // <- poner imagen correcta
 }
+
 
 // ======================================================
 // Dibujar un tile a 20x20
@@ -82,6 +109,18 @@ void DrawMap() {
 
     EndDrawing();
 }
+
+// ======================================================
+// Dibujar sprite dinámico desde archivo
+// ======================================================
+void DrawSpriteAt(Texture2D tex, int x_pos, int y_pos, int dir) {
+
+    Rectangle src  = (Rectangle){0, 0, tex.width, tex.height};
+    Rectangle dest = (Rectangle){x_pos, y_pos, TILE_SIZE, TILE_SIZE};
+
+    DrawTexturePro(tex, src, dest, (Vector2){0, 0}, 0.0f, WHITE);
+}
+
 
 // ======================================================
 // Cerrar ventana y liberar texturas
