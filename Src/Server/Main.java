@@ -81,7 +81,7 @@ public class Main {
         // Solo crear jugador 1 si hay al menos 1 jugador conectado y no está activo
         if (j1Activo) {
             Socket s1 = servidor.getSocketJugador(servidor.J1_NAME);
-            String json1 = Main.generarJSON(player1.getPosition().getX(), player1.getPosition().getY(), frutasJ1, cocodrilosJ1);
+            String json1 = Main.generarJSON(player1, frutasJ1, cocodrilosJ1);
             servidor.enviarA(s1, json1);
             servidor.enviarAMisEspectadores(servidor.J1_NAME, json1);
         }
@@ -122,7 +122,7 @@ public class Main {
         // Solo crear jugador 2 si hay al menos 2 jugadores conectados y no está activo
         if (j2Activo) {
             Socket s2 = servidor.getSocketJugador(servidor.J2_NAME);
-            String json2 = Main.generarJSON(player2.getPosition().getX(), player2.getPosition().getY(), frutasJ2, cocodrilosJ2);
+            String json2 = Main.generarJSON(player2, frutasJ2, cocodrilosJ2);
             servidor.enviarA(s2, json2);
             servidor.enviarAMisEspectadores(servidor.J2_NAME, json2);
         }
@@ -206,8 +206,8 @@ public class Main {
 
     private static void inicializarCocodrilosJ2() {
         cocodrilosJ2.clear();
-        cocodrilosJ2.add(new RedCoco(7, 3));
-        cocodrilosJ2.add(new BlueCoco(6, 2));
+        cocodrilosJ2.add(new RedCoco(11, 8));
+        cocodrilosJ2.add(new BlueCoco(0, 3));
     }
 
     private static void inicializarFrutasJ1() {
@@ -350,25 +350,24 @@ public class Main {
         
         Socket socket = servidor.getSocketJugador(nombreJugador);
         if (socket != null) {
-            Coords pos = jugador.getPosition();
-            String json = generarJSON(pos.getX(), pos.getY(), frutas, cocos);
+            String json = generarJSON(jugador, frutas, cocos);
             servidor.enviarA(socket, json);
             servidor.enviarAMisEspectadores(nombreJugador, json);
         }
     }
 
-    public static String generarJSON(int jx, int jy, List<Fruit> frutas, List<Coco> cocos) {
+    public static String generarJSON(Player player, List<Fruit> frutas, List<Coco> cocos) {
         
         StringBuilder sb = new StringBuilder();
         sb.append("{");
 
         // Jugador {x,y,puntos,escalando?,derecha?}
         sb.append("\"jugador\": {");
-        sb.append("\"x\": ").append(jx).append(", ");
-        sb.append("\"y\": ").append(jy).append(", ");
-        sb.append("\"puntos\": ").append(player1.getPoints()).append(", "); // Usar player.getPoints() cuando esté disponible
-        sb.append("\"climbing\": ").append(player1.isOnVine()).append(", "); 
-        sb.append("\"right\": ").append(player1.isFacingRight()); 
+        sb.append("\"x\": ").append(player.getX()).append(", ");
+        sb.append("\"y\": ").append(player.getY()).append(", ");
+        sb.append("\"puntos\": ").append(player.getPoints()).append(", "); // Usar player.getPoints() cuando esté disponible
+        sb.append("\"climbing\": ").append(player.isOnVine()).append(", "); 
+        sb.append("\"right\": ").append(player.isFacingRight()); 
         sb.append("},");
 
         // Entidades {tipo,x,y,abajo?}
