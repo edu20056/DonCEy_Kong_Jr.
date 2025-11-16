@@ -22,21 +22,27 @@
 typedef struct {
     int x;
     int y;
+    char type[20]; 
+    bool view;
 } Entidad;
 
 typedef struct {
     int x;
     int y;
+    char type[20];   // "BANANA", "STRAWBERRY", "NARANJA"
+    int points;
 } Fruta;
 
 typedef struct {
     int x;
     int y;
-    int direccion;
+    int climbing;
+    int right;
+    int points;
 } Jugador;
 
 // Instancia global del jugador
-Jugador jugador = {10, 10, 0};
+Jugador jugador = {10, 10, 0, 0, 0};
 
 // Entidades dinámicas
 #define MAX_ENTIDADES 100
@@ -52,19 +58,29 @@ int numFrutas = 0;
 // ======================= CÓDIGO =======================
 // ======================================================
 
+void extraer_string(const char *p, char *dest, int max_len) {
+    char *inicio = strchr(p, '\"');
+    if (!inicio) return;
+    inicio++; // saltamos la comilla
+
+    char *fin = strchr(inicio, '\"');
+    if (!fin) return;
+
+    int len = fin - inicio;
+    if (len >= max_len) len = max_len - 1;
+
+    strncpy(dest, inicio, len);
+    dest[len] = '\0';
+}
+
 void procesarJSON(const char *json) {
 
-    // ===========================
-    //   JUGADOR
-    // ===========================
+    // ===== JUGADOR =====
     char *jug = strstr(json, "\"jugador\"");
     if (jug) {
-
-        // Ir al primer '{' después de "jugador"
         char *inicio = strchr(jug, '{');
         if (!inicio) return;
 
-        // Buscar el cierre correcto del bloque '}'
         char *fin = inicio;
         int llaves = 0;
         do {
@@ -73,83 +89,91 @@ void procesarJSON(const char *json) {
             fin++;
         } while (llaves > 0 && *fin);
 
-        // Ahora solo busco x,y DENTRO de [inicio, fin)
         char *xpos = strstr(inicio, "\"x\"");
-        if (xpos && xpos < fin) {
-            jugador.x = extraer_num(xpos + 4)* 20;
-        }
-
         char *ypos = strstr(inicio, "\"y\"");
-        if (ypos && ypos < fin) {
-            jugador.y = extraer_num(ypos + 4) * 20;
-        }
+        char *pts  = strstr(inicio, "\"puntos\"");
+        char *climb = strstr(inicio, "\"climbing\"");
+        char *right = strstr(inicio, "\"right\"");
 
-        printf("[DEBUG] Jugador actualizado -> (%d, %d)\n", jugador.x, jugador.y);
+        if (xpos && xpos < fin) jugador.x = extraer_num(xpos + 4) * 20;
+        if (ypos && ypos < fin) jugador.y = extraer_num(ypos + 4) * 20;
+        if (pts  && pts  < fin) jugador.points = extraer_num(pts + 9);
+        if (climb != NULL) {
+            char *colon = strchr(climb, ':');
+            if (colon != NULL) {
+                char *val = colon + 1;
+                while (*val == ' ' || *val == '\t') val++;
+                jugador.climbing = (*val == 't') ? 1 : 0;
+                printf("[DEBUG] valor climbing = %c, jugador.climbing = %d\n", *val, jugador.climbing);
+            }
+        }
+        if (right != NULL) {
+            // saltar hasta ':'
+            char *colon = strchr(right, ':');
+            if (colon != NULL) {
+                // saltar espacios y comparar la primera letra del valor
+                char *val = colon + 1;
+                while (*val == ' ' || *val == '\t') val++;
+                jugador.right = (*val == 't') ? 1 : 0;
+                printf("[DEBUG] valor right = %c, jugador.right = %d\n", *val, jugador.right);
+            }
+        }
     }
 
-    // ===========================
-    //   ENTIDADES
-    // ===========================
+    // ===== ENTIDADES =====
     numEntidades = 0;
-
     char *ent = strstr(json, "\"entidades\"");
     if (ent) {
         char *inicio = strchr(ent, '[');
         char *fin = strchr(ent, ']');
-
         if (inicio && fin && inicio < fin) {
             char *p = inicio;
-
-            while (1) {
+            while (p < fin && numEntidades < MAX_ENTIDADES) {
                 char *xpos = strstr(p, "\"x\"");
                 char *ypos = strstr(p, "\"y\"");
+                char *typep = strstr(p, "\"tipo\"");
+                char *viewp = strstr(p, "\"View\"");
 
-                if (!xpos || xpos > fin) break;
-                if (!ypos || ypos > fin) break;
-                if (numEntidades >= MAX_ENTIDADES) break;
+                if (!xpos || !ypos || !typep || !viewp || xpos > fin || ypos > fin) break;
 
-                entidades[numEntidades].x = extraer_num(xpos + 4);
-                entidades[numEntidades].y = extraer_num(ypos + 4);
+                entidades[numEntidades].x = extraer_num(xpos + 4)* 20;
+                entidades[numEntidades].y = extraer_num(ypos + 4)* 20;
+                extraer_string(typep + 6, entidades[numEntidades].type, 20);
+                entidades[numEntidades].view = (*(viewp + 7) == 't'); // true/false
 
                 numEntidades++;
-
                 p = ypos + 4;
             }
         }
     }
 
-    // ===========================
-    //   FRUTAS
-    // ===========================
+    // ===== FRUTAS =====
     numFrutas = 0;
-
     char *fru = strstr(json, "\"frutas\"");
     if (fru) {
         char *inicio = strchr(fru, '[');
         char *fin = strchr(fru, ']');
-
         if (inicio && fin && inicio < fin) {
             char *p = inicio;
-
-            while (1) {
+            while (p < fin && numFrutas < MAX_FRUTAS) {
                 char *xpos = strstr(p, "\"x\"");
                 char *ypos = strstr(p, "\"y\"");
+                char *typep = strstr(p, "\"tipo\"");
+                char *pts = strstr(p, "\"puntos\"");
 
-                if (!xpos || xpos > fin) break;
-                if (!ypos || ypos > fin) break;
-                if (numFrutas >= MAX_FRUTAS) break;
+                if (!xpos || !ypos || !typep || !pts || xpos > fin || ypos > fin) break;
 
-                frutas[numFrutas].x = extraer_num(xpos + 4);
-                frutas[numFrutas].y = extraer_num(ypos + 4);
+                frutas[numFrutas].x = extraer_num(xpos + 4)* 20;
+                frutas[numFrutas].y = extraer_num(ypos + 4)* 20;
+                extraer_string(typep + 6, frutas[numFrutas].type, 20);
+                frutas[numFrutas].points = extraer_num(pts + 9);
 
                 numFrutas++;
-
                 p = ypos + 4;
             }
         }
     }
 }
-
 
 int clientLoop(void *arg) {
 
@@ -418,18 +442,55 @@ int main() {
 
         DrawMap();
 
-        DrawSpriteAt(jr_a, jugador.x, jugador.y, 3); // cambiar 3 por sprite de direccion
+        // Dibujo del sprite
+        if (jugador.climbing) {
+            DrawSpriteAt(jr_cu, jugador.x, jugador.y, 3);
+        }
+        else {
+            if (jugador.right) {
+                DrawSpriteAt(jr_b, jugador.x, jugador.y, 3);
+            } else {
+                DrawSpriteAt(jr_a, jugador.x, jugador.y, 3);
+            }
+        }
+
         if (numEntidades > 0) {
             for (int i = 0; i < numEntidades; i++) {
-                DrawSpriteAt(CB_d, entidades[i].x, entidades[i].y, 3);
+                char tipo[20] = "";
+                if (strcmp(entidades[i].type, "ROJO") == 0) { // Es rojo
+                    if (entidades[i].view) { // Esta viendo abajo ?
+                        DrawSpriteAt(CR_d, entidades[i].x, entidades[i].y, 1);
+                    }
+                    else {
+                        DrawSpriteAt(CR_u, entidades[i].x, entidades[i].y, 1);
+                    }
+                }
+                else { // Es azul
+                    if (entidades[i].view) { // Esta viendo abajo ?
+                        DrawSpriteAt(CB_d, entidades[i].x, entidades[i].y, 1);
+                    }
+                    else {
+                        DrawSpriteAt(CB_u, entidades[i].x, entidades[i].y, 1);
+                    }
+                }
             }
         }
 
         if (numFrutas > 0) {
             for (int i = 0; i < numFrutas; i++) {
-                DrawSpriteAt(f_ban, frutas[i].x, frutas[i].y, 3);
+                if (strcmp(frutas[i].type, "BANANA") == 0) {
+                    DrawSpriteAt(f_ban, frutas[i].x, frutas[i].y, 3);
+                }
+                else if (strcmp(frutas[i].type, "STRAWBERRY") == 0)
+                {
+                    DrawSpriteAt(f_str, frutas[i].x, frutas[i].y, 3);
+                }
+                else { // Naranja
+                    DrawSpriteAt(f_or, frutas[i].x, frutas[i].y, 3);   
+                }
             }            
         }
+        // Aqui faltaría pegar la cantidad de puntos actual del jugador
 
         EndDrawing();
     }

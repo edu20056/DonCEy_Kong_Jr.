@@ -9,6 +9,7 @@
 
 extern Texture2D jr_a;
 extern Texture2D jr_b;
+extern Texture2D jr_cu;
 extern Texture2D f_ban;
 extern Texture2D f_or;
 extern Texture2D f_str;

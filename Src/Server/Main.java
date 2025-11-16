@@ -81,7 +81,7 @@ public class Main {
         // Solo crear jugador 1 si hay al menos 1 jugador conectado y no está activo
         if (j1Activo) {
             Socket s1 = servidor.getSocketJugador(servidor.J1_NAME);
-            String json1 = Main.generarJSON(player1.getPosition().getX(), player1.getPosition().getY(), frutasJ1);
+            String json1 = Main.generarJSON(player1.getPosition().getX(), player1.getPosition().getY(), frutasJ1, cocodrilosJ1);
             servidor.enviarA(s1, json1);
             servidor.enviarAMisEspectadores(servidor.J1_NAME, json1);
         }
@@ -122,7 +122,7 @@ public class Main {
         // Solo crear jugador 2 si hay al menos 2 jugadores conectados y no está activo
         if (j2Activo) {
             Socket s2 = servidor.getSocketJugador(servidor.J2_NAME);
-            String json2 = Main.generarJSON(player2.getPosition().getX(), player2.getPosition().getY(), frutasJ2);
+            String json2 = Main.generarJSON(player2.getPosition().getX(), player2.getPosition().getY(), frutasJ2, cocodrilosJ2);
             servidor.enviarA(s2, json2);
             servidor.enviarAMisEspectadores(servidor.J2_NAME, json2);
         }
@@ -212,19 +212,15 @@ public class Main {
 
     private static void inicializarFrutasJ1() {
         frutasJ1.clear();
-        frutasJ1.add(new Fruit(5, 2, "MANZANA"));
         frutasJ1.add(new Fruit(3, 4, "BANANA"));
-        frutasJ1.add(new Fruit(7, 3, "FRUTILLA"));
-        frutasJ1.add(new Fruit(2, 5, "UVA"));
+        frutasJ1.add(new Fruit(7, 12, "STRAWBERRY"));
         frutasJ1.add(new Fruit(6, 6, "NARANJA"));
     }
 
     private static void inicializarFrutasJ2() {
         frutasJ2.clear();
-        frutasJ2.add(new Fruit(5, 2, "MANZANA"));
         frutasJ2.add(new Fruit(3, 4, "BANANA"));
-        frutasJ2.add(new Fruit(7, 3, "FRUTILLA"));
-        frutasJ2.add(new Fruit(2, 5, "UVA"));
+        frutasJ2.add(new Fruit(7, 12, "STRAWBERRY"));
         frutasJ2.add(new Fruit(6, 6, "NARANJA"));
     }
 
@@ -276,13 +272,13 @@ public class Main {
         if (j1Activo && !servidor.mensajes_j1.isEmpty()) {
             String mensaje = servidor.mensajes_j1.remove(0);
             procesarMovimientoJugador(mensaje, player1, collisionSystem1, gravitySystem1, cocodrilosJ1, frutasJ1, servidor.J1_NAME);
-            enviarDatosJugador(servidor.J1_NAME, player1, frutasJ1);
+            enviarDatosJugador(servidor.J1_NAME, player1, frutasJ1, cocodrilosJ1);
         }
 
         if (j2Activo && !servidor.mensajes_j2.isEmpty()) {
             String mensaje = servidor.mensajes_j2.remove(0);
             procesarMovimientoJugador(mensaje, player2, collisionSystem2, gravitySystem2, cocodrilosJ2, frutasJ2, servidor.J2_NAME);
-            enviarDatosJugador(servidor.J2_NAME, player2, frutasJ2);
+            enviarDatosJugador(servidor.J2_NAME, player2, frutasJ2, cocodrilosJ2);
         }
     }
 
@@ -349,38 +345,43 @@ public class Main {
 
     // ========== COMUNICACIÓN ==========
 
-    private static void enviarDatosJugador(String nombreJugador, Player jugador, List<Fruit> frutas) {
+    private static void enviarDatosJugador(String nombreJugador, Player jugador, List<Fruit> frutas, List<Coco> cocos) {
         if (jugador == null) return;
         
         Socket socket = servidor.getSocketJugador(nombreJugador);
         if (socket != null) {
             Coords pos = jugador.getPosition();
-            String json = generarJSON(pos.getX(), pos.getY(), frutas);
+            String json = generarJSON(pos.getX(), pos.getY(), frutas, cocos);
             servidor.enviarA(socket, json);
             servidor.enviarAMisEspectadores(nombreJugador, json);
         }
     }
 
-    public static String generarJSON(int jx, int jy, List<Fruit> frutas) {
-        List<int[]> entidadesRandom = generarListaRandom(3);
+    public static String generarJSON(int jx, int jy, List<Fruit> frutas, List<Coco> cocos) {
         
         StringBuilder sb = new StringBuilder();
         sb.append("{");
 
-        // Jugador
+        // Jugador {x,y,puntos,escalando?,derecha?}
         sb.append("\"jugador\": {");
         sb.append("\"x\": ").append(jx).append(", ");
         sb.append("\"y\": ").append(jy).append(", ");
-        sb.append("\"puntos\": ").append(jx); // Usar player.getPoints() cuando esté disponible
+        sb.append("\"puntos\": ").append(player1.getPoints()).append(", "); // Usar player.getPoints() cuando esté disponible
+        sb.append("\"climbing\": ").append(player1.isOnVine()).append(", "); 
+        sb.append("\"right\": ").append(player1.isFacingRight()); 
         sb.append("},");
 
-        // Entidades
+        // Entidades {tipo,x,y,abajo?}
         sb.append("\"entidades\": [");
-        for (int i = 0; i < entidadesRandom.size(); i++) {
-            int[] e = entidadesRandom.get(i);
-            sb.append("{\"tipo\": \"entidad\", \"x\": ").append(e[0])
-            .append(", \"y\": ").append(e[1]).append("}");
-            if (i < entidadesRandom.size() - 1) sb.append(",");
+        for (int i = 0; i < cocos.size(); i++) {
+            Coco coco = cocos.get(i);
+            String type = coco.getTipo();
+            int x_pos = coco.getX();
+            int y_pos = coco.getY();
+            sb.append("{\"tipo\": \"").append(type).append("\", \"x\": ")
+                .append(x_pos).append(", \"y\": ").append(y_pos)
+                .append(", \"View\":").append(coco.getIsFacingDown()).append("}");
+            if (i < cocos.size() - 1) sb.append(",");
         }
         sb.append("],");
 
