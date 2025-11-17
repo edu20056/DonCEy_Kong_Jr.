@@ -2,14 +2,7 @@ package World;
 
 /**
  * Types of tiles in the game world.
- *
  * Each tile type has specific properties that affect gameplay.
- * Such as:
- *
- * @param symbol      Char that represents the tile in map gird
- * @param isSolid     Availability of the player to pass through the object
- * @param isDeadly    Kills player on contact
- * @param isClimbable Availability of the player to move verticality 
  */
 
 public enum TileType {
@@ -19,11 +12,21 @@ public enum TileType {
     WATER('~', false, true, false),
     GOAL('X', false, false, false);
     
-    private final char symbol;
-    private final boolean isSolid;
-    private final boolean isDeadly;
-    private final boolean isClimbable;
+    // Tile properties
+    private final char symbol;        // Character representation in map files
+    private final boolean isSolid;    // Blocks entity movement if true
+    private final boolean isDeadly;   // Causes instant death on contact if true  
+    private final boolean isClimbable; // Allows vertical movement if true
     
+    /**
+     * Constructs a TileType with specified properties.
+     *
+     * @param symbol character that represents this tile in map grid files
+     * @param isSolid determines if entities can pass through this tile
+     * @param isDeadly kills player on contact if true
+     * @param isClimbable allows player to move vertically when on this tile
+     */
+
     TileType(char symbol, boolean isSolid, boolean isDeadly, boolean isClimbable) {
         this.symbol = symbol;
         this.isSolid = isSolid;
@@ -31,11 +34,21 @@ public enum TileType {
         this.isClimbable = isClimbable;
     }
     
+    // --- GETTER METHODS ---
+    
     public char getSymbol() { return symbol; }
     public boolean isSolid() { return isSolid; }
     public boolean isDeadly() { return isDeadly; }
     public boolean isClimbable() { return isClimbable; }
     
+    
+    /**
+     * Converts a character to its corresponding TileType.
+     *
+     * @param c the character to convert to a TileType
+     * @return the TileType associated with the character, or EMPTY if no match found
+     */
+
     public static TileType fromChar(char c) {
         for (TileType type : values()) {
             if (type.symbol == c) {

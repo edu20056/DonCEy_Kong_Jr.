@@ -95,8 +95,8 @@ public class Main {
                 gravitySystem1 = new GravitySystem(collisionSystem1);
                 player1 = new Player(SPAWN_J1.getX(), SPAWN_J1.getY());
                 
-                // Inicializar estado del jugador
-                collisionSystem1.updatePlayerState(player1);
+                // Inicializar estado del jugador (usando el nuevo método sin parámetros)
+                collisionSystem1.updatePlayerState(player1, null, null);
                 
                 // Inicializar entidades
                 inicializarCocodrilosJ1();
@@ -136,8 +136,8 @@ public class Main {
                 gravitySystem2 = new GravitySystem(collisionSystem2);
                 player2 = new Player(SPAWN_J2.getX(), SPAWN_J2.getY());
                 
-                // Inicializar estado del jugador
-                collisionSystem2.updatePlayerState(player2);
+                // Inicializar estado del jugador (usando el nuevo método sin parámetros)
+                collisionSystem2.updatePlayerState(player2, null, null);
                 
                 // Inicializar entidades
                 inicializarCocodrilosJ2();
@@ -260,11 +260,13 @@ public class Main {
         // Solo actualizar física si el jugador está activo y tiene sistemas
         if (j1Activo && gravitySystem1 != null && player1 != null && !player1.isDead()) {
             gravitySystem1.applyGravity(player1);
+            // Usar el nuevo método unificado con listas (pueden ser null)
             collisionSystem1.updatePlayerState(player1, cocodrilosJ1, frutasJ1);
         }
         
         if (j2Activo && gravitySystem2 != null && player2 != null && !player2.isDead()) {
             gravitySystem2.applyGravity(player2);
+            // Usar el nuevo método unificado con listas (pueden ser null)
             collisionSystem2.updatePlayerState(player2, cocodrilosJ2, frutasJ2);
         }
     }
@@ -298,31 +300,79 @@ public class Main {
             switch (movimiento) {
                 case 1: // ARRIBA
                     if (jugador.isOnGround()) {
-                        jugador.jump(gravity, collision);
-                        accion = "SALTÓ desde el suelo";
+                        // NUEVO: Usar el sistema de colisión para saltos
+                        Coords[] jumpPositions = jugador.calculateJumpPositions();
+                        Coords jumpTarget = null;
+                        
+                        // Intentar salto de 2 bloques primero
+                        if (collision.canMoveTo(jumpPositions[0]) && collision.canMoveTo(jumpPositions[1])) {
+                            jumpTarget = jumpPositions[1]; // Salto alto
+                        } else if (collision.canMoveTo(jumpPositions[0])) {
+                            jumpTarget = jumpPositions[0]; // Salto normal
+                        }
+                        
+                        if (jumpTarget != null) {
+                            jugador.applyJump(jumpTarget);
+                            accion = "SALTÓ desde el suelo";
+                        } else {
+                            accion = "no puede saltar (obstáculo)";
+                        }
                     } else if (jugador.isOnVine()) {
-                        jugador.moveUp(collision);
-                        accion = "SUBIÓ por la liana";
+                        // NUEVO: Usar el sistema de colisión para movimiento vertical
+                        Coords newPos = jugador.calculateMoveUp();
+                        if (collision.canMoveTo(newPos)) {
+                            jugador.applyMovement(newPos, jugador.isFacingRight());
+                            accion = "SUBIÓ por la liana";
+                        } else {
+                            accion = "no puede subir (obstáculo)";
+                        }
                     } else {
                         accion = "no puede moverse arriba";
                     }
                     break;
+                    
                 case 2: // Derecha
-                    jugador.moveRight(collision);
-                    accion = "se movió DERECHA";
+                    // NUEVO: Usar el sistema de colisión para movimiento horizontal
+                    Coords rightPos = jugador.calculateMoveRight();
+                    if (collision.canMoveTo(rightPos)) {
+                        jugador.applyMovement(rightPos, true);
+                        accion = "se movió DERECHA";
+                    } else {
+                        accion = "no puede moverse derecha (obstáculo)";
+                    }
                     break;
+                    
                 case 3: // Abajo
-                    jugador.moveDown(collision);
-                    accion = "se movió ABAJO";
+                    // NUEVO: Usar el sistema de colisión para movimiento vertical
+                    if (jugador.isOnVine()) {
+                        Coords downPos = jugador.calculateMoveDown();
+                        if (collision.canMoveTo(downPos)) {
+                            jugador.applyMovement(downPos, jugador.isFacingRight());
+                            accion = "se movió ABAJO";
+                        } else {
+                            accion = "no puede bajar (obstáculo)";
+                        }
+                    } else {
+                        accion = "no puede moverse abajo (no está escalando)";
+                    }
                     break;
+                    
                 case 4: // Izquierda
-                    jugador.moveLeft(collision);
-                    accion = "se movió IZQUIERDA";
+                    // NUEVO: Usar el sistema de colisión para movimiento horizontal
+                    Coords leftPos = jugador.calculateMoveLeft();
+                    if (collision.canMoveTo(leftPos)) {
+                        jugador.applyMovement(leftPos, false);
+                        accion = "se movió IZQUIERDA";
+                    } else {
+                        accion = "no puede moverse izquierda (obstáculo)";
+                    }
                     break;
+                    
                 default:
                     accion = "acción desconocida: " + movimiento;
             }
             
+            // Actualizar estado del jugador después del movimiento
             collision.updatePlayerState(jugador, cocodrilos, frutas);
             
             // Enviar confirmación
@@ -428,10 +478,8 @@ public class Main {
             jugador.getPosition().getY(),
             jugador.getPoints(),
             jugador.isOnGround() ? "SUELO " : "AIRE ",
-            jugador.isClimbing() ? "ESCALANDO " : "",
+            "",
             jugador.isOnVine() ? "ENREDADERA " : "",
             jugador.isDead() ? "MUERTO " : "");
     }
-
-
 }
