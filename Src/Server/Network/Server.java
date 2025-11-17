@@ -199,13 +199,19 @@ public class Server {
                         return;
                     }
                     
-                    // Jugador entrante es jugador 1
-                    if (jugadores.size() == 0) { 
+                    if (J1_ING == false){
                         J1_NAME = jugadorAsociado;
                     }
 
                     else {
-                        J2_NAME = jugadorAsociado;
+                        if (J2_ING == false) {
+                            J2_NAME = jugadorAsociado;
+                        }
+                        else { // Ambos jugadores ingresados
+                            out.println("ERROR: Máximo de jugadores alcanzado !");
+                            socket.close();
+                            return;
+                        }
                     }
 
                     jugadores.put(jugadorAsociado, socket);
