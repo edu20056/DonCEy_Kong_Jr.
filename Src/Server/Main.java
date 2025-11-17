@@ -2,6 +2,7 @@ import java.net.Socket;
 import java.util.*;
 
 import Network.Server;
+import Network.AdapterJSON;
 import World.World;
 import World.TileType;
 import Entities.Player;
@@ -31,6 +32,7 @@ public class Main {
     private static GravitySystem gravitySystem2 = null;
     
     private static Server servidor;
+    private static AdapterJSON adapter;
     
     // Control de estado
     private static boolean j1Activo = false;
@@ -45,6 +47,8 @@ public class Main {
     // ========== INICIALIZACIÓN ==========
 
     public static void main(String[] args) {
+        
+        adapter = new AdapterJSON();
         servidor = new Server();
         servidor.iniciar();
         
@@ -81,40 +85,52 @@ public class Main {
         // Solo crear jugador 1 si hay al menos 1 jugador conectado y no está activo
         if (j1Activo) {
             Socket s1 = servidor.getSocketJugador(servidor.J1_NAME);
-            String json1 = Main.generarJSON(player1.getPosition().getX(), player1.getPosition().getY(), frutasJ1);
+
+            if (s1 == null || s1.isClosed()) {
+                return;                    
+            }
+
+            String json1 = adapter.generarJSON(player1, frutasJ1, cocodrilosJ1);
             servidor.enviarA(s1, json1);
             servidor.enviarAMisEspectadores(servidor.J1_NAME, json1);
         }
-        if (!j1Activo && servidor.getJugadoresSize() >= 1) {
-            try {
-                System.out.println("🔄 Inicializando mundo para Jugador 1...");
-                
-                // Crear mundo y sistemas para J1
-                world1 = new World(LEVEL_PATH);
-                collisionSystem1 = new CollisionSystem(world1);
-                gravitySystem1 = new GravitySystem(collisionSystem1);
-                player1 = new Player(SPAWN_J1.getX(), SPAWN_J1.getY());
-                
-                // Inicializar estado del jugador
-                collisionSystem1.updatePlayerState(player1);
-                
-                // Inicializar entidades
-                inicializarCocodrilosJ1();
-                inicializarFrutasJ1();
-                
-                j1Activo = true;
-                servidor.J1_ING = true;
-                
-                System.out.println("✅ Jugador 1 instanciado con su propio mundo");
-                System.out.println("   - Mundo: " + world1.getWidth() + "x" + world1.getHeight());
-                System.out.println("   - Cocodrilos: " + cocodrilosJ1.size());
-                System.out.println("   - Frutas: " + frutasJ1.size());
-                
+        else {
+            if (servidor.getJugadoresSize() == 1 && !j2Activo || // Se conecta por primera vez J1 (aunque antes se pudo haber conectado y luego desconectado)
+                servidor.getJugadoresSize() == 2 && j2Activo){ // Se conecta J1 luego de haberse desconectado mientras J2 estaba jugando.
+                try {
+                    System.out.println("🔄 Inicializando mundo para Jugador 1...");
+                    
+                    // Crear mundo y sistemas para J1
+                    world1 = new World(LEVEL_PATH);
+                    collisionSystem1 = new CollisionSystem(world1);
+                    gravitySystem1 = new GravitySystem(collisionSystem1);
+                    player1 = new Player(SPAWN_J1.getX(), SPAWN_J1.getY());
+                    
+                    // Inicializar estado del jugador
+                    collisionSystem1.updatePlayerState(player1, null, null);
+                    
+                    // Inicializar entidades
+                    inicializarCocodrilosJ1();
+                    inicializarFrutasJ1();
+                    
+                    j1Activo = true;
+                    servidor.J1_ING = true;
+                    
+                    System.out.println("✅ Jugador 1 instanciado con su propio mundo");
+                    System.out.println("   - Mundo: " + world1.getWidth() + "x" + world1.getHeight());
+                    System.out.println("   - Cocodrilos: " + cocodrilosJ1.size());
+                    System.out.println("   - Frutas: " + frutasJ1.size());
+                    
 
-            } catch (Exception e) {
-                System.err.println("❌ Error al crear mundo para J1: " + e.getMessage());
-                limpiarJugador1();
+                } catch (Exception e) {
+                    System.err.println("❌ Error al crear mundo para J1: " + e.getMessage());
+                    limpiarJugador1();
+                }
             }
+        }
+
+        if (!j1Activo && servidor.getJugadoresSize() >= 1 ) {
+            
         }
     }
 
@@ -122,7 +138,13 @@ public class Main {
         // Solo crear jugador 2 si hay al menos 2 jugadores conectados y no está activo
         if (j2Activo) {
             Socket s2 = servidor.getSocketJugador(servidor.J2_NAME);
-            String json2 = Main.generarJSON(player2.getPosition().getX(), player2.getPosition().getY(), frutasJ2);
+
+            if (s2 == null || s2.isClosed()) {
+                servidor.J2_desc = true;   
+                return;                    
+            }
+
+            String json2 = adapter.generarJSON(player2, frutasJ2, cocodrilosJ2);
             servidor.enviarA(s2, json2);
             servidor.enviarAMisEspectadores(servidor.J2_NAME, json2);
         }
@@ -136,8 +158,8 @@ public class Main {
                 gravitySystem2 = new GravitySystem(collisionSystem2);
                 player2 = new Player(SPAWN_J2.getX(), SPAWN_J2.getY());
                 
-                // Inicializar estado del jugador
-                collisionSystem2.updatePlayerState(player2);
+                // Inicializar estado del jugador (usando el nuevo método sin parámetros)
+                collisionSystem2.updatePlayerState(player2, null, null);
                 
                 // Inicializar entidades
                 inicializarCocodrilosJ2();
@@ -160,13 +182,15 @@ public class Main {
 
     private static void limpiarJugadoresDesconectados() {
         // Verificar si J1 estaba activo pero ahora está desconectado
-        if (j1Activo && servidor.getSocketJugador(servidor.J1_NAME) == null) {
+        if (servidor.J1_ING && servidor.J1_desc) {
+            servidor.J1_desc = false;
             System.out.println("🔌 Jugador 1 desconectado, liberando recursos...");
             limpiarJugador1();
         }
         
         // Verificar si J2 estaba activo pero ahora está desconectado
-        if (j2Activo && servidor.getSocketJugador(servidor.J2_NAME) == null) {
+        if (j2Activo && servidor.J2_desc) {
+            servidor.J2_desc = false;
             System.out.println("🔌 Jugador 2 desconectado, liberando recursos...");
             limpiarJugador2();
         }
@@ -181,6 +205,7 @@ public class Main {
         frutasJ1.clear();
         j1Activo = false;
         servidor.J1_ING = false;
+        servidor.J1_desc = false;
         System.out.println("🗑️  Recursos de Jugador 1 liberados");
     }
 
@@ -193,6 +218,7 @@ public class Main {
         frutasJ2.clear();
         j2Activo = false;
         servidor.J2_ING = false;
+        servidor.J2_desc = false;
         System.out.println("🗑️  Recursos de Jugador 2 liberados");
     }
 
@@ -206,25 +232,21 @@ public class Main {
 
     private static void inicializarCocodrilosJ2() {
         cocodrilosJ2.clear();
-        cocodrilosJ2.add(new RedCoco(7, 3));
-        cocodrilosJ2.add(new BlueCoco(6, 2));
+        cocodrilosJ2.add(new RedCoco(11, 8));
+        cocodrilosJ2.add(new BlueCoco(0, 3));
     }
 
     private static void inicializarFrutasJ1() {
         frutasJ1.clear();
-        frutasJ1.add(new Fruit(5, 2, "MANZANA"));
         frutasJ1.add(new Fruit(3, 4, "BANANA"));
-        frutasJ1.add(new Fruit(7, 3, "FRUTILLA"));
-        frutasJ1.add(new Fruit(2, 5, "UVA"));
+        frutasJ1.add(new Fruit(7, 12, "STRAWBERRY"));
         frutasJ1.add(new Fruit(6, 6, "NARANJA"));
     }
 
     private static void inicializarFrutasJ2() {
         frutasJ2.clear();
-        frutasJ2.add(new Fruit(5, 2, "MANZANA"));
         frutasJ2.add(new Fruit(3, 4, "BANANA"));
-        frutasJ2.add(new Fruit(7, 3, "FRUTILLA"));
-        frutasJ2.add(new Fruit(2, 5, "UVA"));
+        frutasJ2.add(new Fruit(7, 12, "STRAWBERRY"));
         frutasJ2.add(new Fruit(6, 6, "NARANJA"));
     }
 
@@ -260,11 +282,13 @@ public class Main {
         // Solo actualizar física si el jugador está activo y tiene sistemas
         if (j1Activo && gravitySystem1 != null && player1 != null && !player1.isDead()) {
             gravitySystem1.applyGravity(player1);
+            // Usar el nuevo método unificado con listas (pueden ser null)
             collisionSystem1.updatePlayerState(player1, cocodrilosJ1, frutasJ1);
         }
         
         if (j2Activo && gravitySystem2 != null && player2 != null && !player2.isDead()) {
             gravitySystem2.applyGravity(player2);
+            // Usar el nuevo método unificado con listas (pueden ser null)
             collisionSystem2.updatePlayerState(player2, cocodrilosJ2, frutasJ2);
         }
     }
@@ -276,13 +300,13 @@ public class Main {
         if (j1Activo && !servidor.mensajes_j1.isEmpty()) {
             String mensaje = servidor.mensajes_j1.remove(0);
             procesarMovimientoJugador(mensaje, player1, collisionSystem1, gravitySystem1, cocodrilosJ1, frutasJ1, servidor.J1_NAME);
-            enviarDatosJugador(servidor.J1_NAME, player1, frutasJ1);
+            enviarDatosJugador(servidor.J1_NAME, player1, frutasJ1, cocodrilosJ1);
         }
 
         if (j2Activo && !servidor.mensajes_j2.isEmpty()) {
             String mensaje = servidor.mensajes_j2.remove(0);
             procesarMovimientoJugador(mensaje, player2, collisionSystem2, gravitySystem2, cocodrilosJ2, frutasJ2, servidor.J2_NAME);
-            enviarDatosJugador(servidor.J2_NAME, player2, frutasJ2);
+            enviarDatosJugador(servidor.J2_NAME, player2, frutasJ2, cocodrilosJ2);
         }
     }
 
@@ -298,31 +322,79 @@ public class Main {
             switch (movimiento) {
                 case 1: // ARRIBA
                     if (jugador.isOnGround()) {
-                        jugador.jump(gravity, collision);
-                        accion = "SALTÓ desde el suelo";
+                        // NUEVO: Usar el sistema de colisión para saltos
+                        Coords[] jumpPositions = jugador.calculateJumpPositions();
+                        Coords jumpTarget = null;
+                        
+                        // Intentar salto de 2 bloques primero
+                        if (collision.canMoveTo(jumpPositions[0]) && collision.canMoveTo(jumpPositions[1])) {
+                            jumpTarget = jumpPositions[1]; // Salto alto
+                        } else if (collision.canMoveTo(jumpPositions[0])) {
+                            jumpTarget = jumpPositions[0]; // Salto normal
+                        }
+                        
+                        if (jumpTarget != null) {
+                            jugador.applyJump(jumpTarget);
+                            accion = "SALTÓ desde el suelo";
+                        } else {
+                            accion = "no puede saltar (obstáculo)";
+                        }
                     } else if (jugador.isOnVine()) {
-                        jugador.moveUp(collision);
-                        accion = "SUBIÓ por la liana";
+                        // NUEVO: Usar el sistema de colisión para movimiento vertical
+                        Coords newPos = jugador.calculateMoveUp();
+                        if (collision.canMoveTo(newPos)) {
+                            jugador.applyMovement(newPos, jugador.isFacingRight());
+                            accion = "SUBIÓ por la liana";
+                        } else {
+                            accion = "no puede subir (obstáculo)";
+                        }
                     } else {
                         accion = "no puede moverse arriba";
                     }
                     break;
+                    
                 case 2: // Derecha
-                    jugador.moveRight(collision);
-                    accion = "se movió DERECHA";
+                    // NUEVO: Usar el sistema de colisión para movimiento horizontal
+                    Coords rightPos = jugador.calculateMoveRight();
+                    if (collision.canMoveTo(rightPos)) {
+                        jugador.applyMovement(rightPos, true);
+                        accion = "se movió DERECHA";
+                    } else {
+                        accion = "no puede moverse derecha (obstáculo)";
+                    }
                     break;
+                    
                 case 3: // Abajo
-                    jugador.moveDown(collision);
-                    accion = "se movió ABAJO";
+                    // NUEVO: Usar el sistema de colisión para movimiento vertical
+                    if (jugador.isOnVine()) {
+                        Coords downPos = jugador.calculateMoveDown();
+                        if (collision.canMoveTo(downPos)) {
+                            jugador.applyMovement(downPos, jugador.isFacingRight());
+                            accion = "se movió ABAJO";
+                        } else {
+                            accion = "no puede bajar (obstáculo)";
+                        }
+                    } else {
+                        accion = "no puede moverse abajo (no está escalando)";
+                    }
                     break;
+                    
                 case 4: // Izquierda
-                    jugador.moveLeft(collision);
-                    accion = "se movió IZQUIERDA";
+                    // NUEVO: Usar el sistema de colisión para movimiento horizontal
+                    Coords leftPos = jugador.calculateMoveLeft();
+                    if (collision.canMoveTo(leftPos)) {
+                        jugador.applyMovement(leftPos, false);
+                        accion = "se movió IZQUIERDA";
+                    } else {
+                        accion = "no puede moverse izquierda (obstáculo)";
+                    }
                     break;
+                    
                 default:
                     accion = "acción desconocida: " + movimiento;
             }
             
+            // Actualizar estado del jugador después del movimiento
             collision.updatePlayerState(jugador, cocodrilos, frutas);
             
             // Enviar confirmación
@@ -349,62 +421,15 @@ public class Main {
 
     // ========== COMUNICACIÓN ==========
 
-    private static void enviarDatosJugador(String nombreJugador, Player jugador, List<Fruit> frutas) {
+    private static void enviarDatosJugador(String nombreJugador, Player jugador, List<Fruit> frutas, List<Coco> cocos) {
         if (jugador == null) return;
         
         Socket socket = servidor.getSocketJugador(nombreJugador);
         if (socket != null) {
-            Coords pos = jugador.getPosition();
-            String json = generarJSON(pos.getX(), pos.getY(), frutas);
+            String json = adapter.generarJSON(jugador, frutas, cocos);
             servidor.enviarA(socket, json);
             servidor.enviarAMisEspectadores(nombreJugador, json);
         }
-    }
-
-    public static String generarJSON(int jx, int jy, List<Fruit> frutas) {
-        List<int[]> entidadesRandom = generarListaRandom(3);
-        
-        StringBuilder sb = new StringBuilder();
-        sb.append("{");
-
-        // Jugador
-        sb.append("\"jugador\": {");
-        sb.append("\"x\": ").append(jx).append(", ");
-        sb.append("\"y\": ").append(jy).append(", ");
-        sb.append("\"puntos\": ").append(jx); // Usar player.getPoints() cuando esté disponible
-        sb.append("},");
-
-        // Entidades
-        sb.append("\"entidades\": [");
-        for (int i = 0; i < entidadesRandom.size(); i++) {
-            int[] e = entidadesRandom.get(i);
-            sb.append("{\"tipo\": \"entidad\", \"x\": ").append(e[0])
-            .append(", \"y\": ").append(e[1]).append("}");
-            if (i < entidadesRandom.size() - 1) sb.append(",");
-        }
-        sb.append("],");
-
-        // Frutas REALES
-        sb.append("\"frutas\": [");
-        if (frutas != null) {
-            int frutasActivas = 0;
-            for (Fruit fruta : frutas) {
-                if (fruta.isActiva()) {
-                    if (frutasActivas > 0) sb.append(",");
-                    Coords pos = fruta.getPosition();
-                    sb.append("{\"tipo\": \"").append(fruta.getTipo())
-                      .append("\", \"x\": ").append(pos.getX())
-                      .append(", \"y\": ").append(pos.getY())
-                      .append(", \"puntos\": ").append(fruta.getPuntos())
-                      .append("}");
-                    frutasActivas++;
-                }
-            }
-        }
-        sb.append("]");
-
-        sb.append("}");
-        return sb.toString();
     }
 
     public static List<int[]> generarListaRandom(int cantidad) {
@@ -428,10 +453,8 @@ public class Main {
             jugador.getPosition().getY(),
             jugador.getPoints(),
             jugador.isOnGround() ? "SUELO " : "AIRE ",
-            jugador.isClimbing() ? "ESCALANDO " : "",
+            "",
             jugador.isOnVine() ? "ENREDADERA " : "",
             jugador.isDead() ? "MUERTO " : "");
     }
-
-
 }

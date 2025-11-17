@@ -5,6 +5,7 @@
 char map[MAP_HEIGHT][MAP_WIDTH + 1];
 Texture2D jr_a;
 Texture2D jr_b;
+Texture2D jr_cu;
 Texture2D f_ban;
 Texture2D f_or;
 Texture2D f_str;
@@ -58,9 +59,9 @@ void InitGraphics() {
     mario    = LoadTexture("Sprites/mario.png");
 
     // Jugador
-    jr_a     = LoadTexture("Sprites/Jr/jr_a.png"); 
-    jr_b     = LoadTexture("Sprites/Jr/jr_b.png");  // <-- NO SOBREESCRIBIR
-
+    jr_a     = LoadTexture("Sprites/Jr/dkjr_caminar_izquierda_3.png"); 
+    jr_b     = LoadTexture("Sprites/Jr/dkjr_caminar_derecha_3.png"); 
+    jr_cu    = LoadTexture("Sprites/Jr/dkjr_esc_2_cuerdas_1.png");
     // Frutas
     f_ban    = LoadTexture("Sprites/Fruits/fruit_bananas.png"); 
     f_or     = LoadTexture("Sprites/Fruits/fruit_oranges.png"); 

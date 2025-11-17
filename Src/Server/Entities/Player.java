@@ -1,131 +1,143 @@
-// Entities/Player.java
 package Entities;
 
 import Utils.Coords;
-import Physics.CollisionSystem;
-import Physics.GravitySystem;
+
+/**
+ * Represents the main player character in the game,
+ * this class handles player positioning, directional facing, etc...
+ */
 
 public class Player extends Entity {
+    private int jumpStrength;
     private boolean facingRight;
     private boolean onGround;
-    private boolean climbing;
     private boolean onVine;
     private boolean dead;
     private int points;
     
+    
+    /**
+     * Constructs a new Player entity at the specified coordinates.
+     * Initializes with default state: facing right, alive, on ground with zero points.
+     * 
+     * @param x The initial X coordinate in the game world
+     * @param y The initial Y coordinate in the game world
+     */
+
     public Player(int x, int y) {
-        super(x, y); // Llama al constructor de Entity
+        super(x, y);
+        this.jumpStrength = 3;
         this.facingRight = true;
         this.onGround = false;
-        this.climbing = false;
         this.onVine = false;
         this.dead = false;
         this.points = 0;
     }
-    
-    public void moveLeft(CollisionSystem collision) {
-        if (dead) return;
-        Coords newPos = new Coords(getX() - 1, getY());
-        if (collision.canMoveTo(newPos) || (climbing && collision.isOnLadder(newPos))) {
-            setPosition(newPos);
-            facingRight = false;
-        }
-        collision.updatePlayerState(this);
-    }
-    
-    public void moveRight(CollisionSystem collision) {
-        if (dead) return;
-        Coords newPos = new Coords(getX() + 1, getY());
-        if (collision.canMoveTo(newPos) || (climbing && collision.isOnLadder(newPos))) {
-            setPosition(newPos);
-            facingRight = true;
-        }
-        collision.updatePlayerState(this);
-    }
-    
-    public void moveUp(CollisionSystem collision) {
-        if (dead) return;
-        // Permitir movimiento hacia arriba si está escalando O si está en una enredadera
-        if (climbing || onVine) {
-            Coords newPos = new Coords(getX(), getY() - 1);
-            if (collision.canMoveTo(newPos)) {
-                setPosition(newPos);
-            }
-        }
-    }
 
-    public void jump(GravitySystem gravity, CollisionSystem collision) {
-        if (dead) return;
+    // --- GETTERS AND SETTERS --- //
 
-        if (onGround || onVine) {
-            // Salto de 2 bloques de altura
-            Coords jumpPos1 = new Coords(getX(), getY() - 1);
-            Coords jumpPos2 = new Coords(getX(), getY() - 2);
-        
-            if (collision.canMoveTo(jumpPos1) && collision.canMoveTo(jumpPos2)) {
-                setPosition(jumpPos2); // Salto alto
-            } else if (collision.canMoveTo(jumpPos1)) {
-                setPosition(jumpPos1); // Salto normal
-            }
-            onGround = false;
-        }
-        collision.updatePlayerState(this);
-    }
-
-    public void moveDown(CollisionSystem collision) {
-        if (dead) return;
-        // Permitir movimiento hacia abajo si está escalando O si está en una enredadera
-        if (climbing || onVine) {
-            Coords newPos = new Coords(getX(), getY() + 1);
-            if (collision.canMoveTo(newPos)) {
-                setPosition(newPos);
-            }
-        }
-        collision.updatePlayerState(this);
-    }
-    
-    public void toggleClimbing(CollisionSystem collision) {
-        if (dead) return;
-        if (onVine) {
-            climbing = !climbing;
-            System.out.println("Escalando: " + climbing);
-        } else {
-            climbing = false; // No puede escalar si no está en una enredadera
-        }
-    }
-    
-    public void die() {
-        if (!dead) {
-            dead = true;
-            System.out.println("¡El jugador ha muerto!");
-        }
-    }
-    
-    public void respawn(Coords spawnPoint) {
-        setPosition(spawnPoint);
-        dead = false;
-        onGround = false;
-        climbing = false;
-        onVine = false;
-        facingRight = true;
-        System.out.println("¡Jugador respawneado en " + spawnPoint + "!");
-    }
-    
-    public void addPoints(int pts) {
-        this.points += pts;
-    }
-
-    // Getters
     public boolean isFacingRight() { return facingRight; }
     public boolean isOnGround() { return onGround; }
-    public boolean isClimbing() { return climbing; }
     public boolean isOnVine() { return onVine; }
     public boolean isDead() { return dead; }
     public int getPoints() { return points; }
 
-    // Setters
     public void setOnGround(boolean onGround) { this.onGround = onGround; }
-    public void setClimbing(boolean climbing) { this.climbing = climbing; }
     public void setOnVine(boolean onVine) { this.onVine = onVine; }
     public void setPoints(int pts) { this.points = pts; }
+
+    /**
+     * These methods calculate potential movements without validation
+     * Used by external systems to check collision before applying movement
+     * 
+     * @return Coordinates representing the position after moving
+     */
+
+    public Coords calculateMoveLeft() {
+        return new Coords(getX() - 1, getY());
+    }
+    public Coords calculateMoveRight() {
+        return new Coords(getX() + 1, getY());
+    }
+    public Coords calculateMoveUp() {
+        return new Coords(getX(), getY() - 1);
+    }
+    public Coords calculateMoveDown() {
+        return new Coords(getX(), getY() + 1);
+    }
+    public Coords[] calculateJumpPositions() {
+        return new Coords[] {
+            new Coords(getX(), getY() - 1),
+            new Coords(getX(), getY() - 2) 
+        };
+    }
+    
+    /**
+     * These methods apply validated movements to the player
+     * Only processes movement if the player is alive.
+     * 
+     * @param newPos/jumpPos The validated new position to move to
+     * @param moveRight The direction faced after movement
+     */
+
+    public void applyMovement(Coords newPos, boolean moveRight) {
+        if (!dead) {
+            setPosition(newPos);
+            facingRight = moveRight;
+        }
+    }
+    public void applyJump(Coords jumpPos) {
+        if (!dead && !getPosition().equals(jumpPos)) {
+            setPosition(jumpPos);
+            onGround = false;
+        }
+    }
+    
+    /**
+     * Kills the player, setting the dead state to true.
+     */
+
+    public void die() {
+        if (!dead) {
+            dead = true;
+        }
+    }
+    
+    /**
+     * Respawns the player at the specified position with reset state.
+     * Resets all state variables to their initial values.
+     * 
+     * @param spawnPoint The coordinates where the player should respawn
+     */
+
+    public void respawn(Coords spawnPoint) {
+        setPosition(spawnPoint);
+        dead = false;
+        onGround = false;
+        onVine = false;
+        facingRight = true;
+    }
+    
+    /**
+     * Adds points to the player's current score.
+     * 
+     * @param pts The number of points to add to the current score
+     */
+
+    public void addPoints(int pts) {
+        this.points += pts;
+    }
+    
+    /**
+     * Updates the player's environmental interaction states.
+     * Typically called by collision detection systems.
+     * 
+     * @param onGround Whether the player is standing on solid ground
+     * @param onVine Whether the player is standing on a climbable vine
+     */
+
+    public void updateEnvironmentalState(boolean onGround, boolean onVine) {
+        this.onGround = onGround;
+        this.onVine = onVine;
+    }
 }

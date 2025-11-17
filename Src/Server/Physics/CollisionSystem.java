@@ -1,14 +1,18 @@
 package Physics;
-import java.util.*;
 
 import World.World;
 import World.TileType;
 import Entities.Player;
 import Utils.Coords;
 import Entities.Coco;
-import Entities.RedCoco;
-import Entities.BlueCoco;
 import Entities.Fruit;
+
+import java.util.*;
+
+/**
+ * Handles all collision detection and resolution in the game.
+ * Manages collisions between entities and the game world.
+ */
 
 public class CollisionSystem {
     private final World world;
@@ -17,119 +21,107 @@ public class CollisionSystem {
         this.world = world;
     }
     
+    /**
+     * Checks if a position is valid for movement.
+     */
+
     public boolean canMoveTo(Coords coords) {
-        if (!world.isWithinBounds(coords)) {
-            return false;
-        }
-        
-        TileType tile = world.getTile(coords);
-        return !tile.isSolid();
+        return world.isWithinBounds(coords) && !world.getTile(coords).isSolid();
     }
     
-    public boolean isOnLadder(Coords coords) {
-        if (!world.isWithinBounds(coords)) {
-            return false;
-        }
-        
-        TileType tile = world.getTile(coords);
-        return tile.isClimbable();
-    }
-    
+    /**
+     * Checks if a position contains a vine tile.
+     */
+
     public boolean isOnVine(Coords coords) {
-        if (!world.isWithinBounds(coords)) {
-            return false;
-        }
+        return world.isWithinBounds(coords) && world.getTile(coords) == TileType.VINE;
+    }
+    
+    /**
+     * Checks if a position contains a deadly tile.
+     */
+
+    public boolean isDeadlyTile(Coords coords) {
+        return world.isWithinBounds(coords) && world.getTile(coords).isDeadly();
+    }
+    
+    /**
+     * Checks if a position is above solid ground.
+     */
+
+    public boolean isOnGround(Coords coords) {
+        if (!world.isWithinBounds(coords)) return false;
         
-        TileType tile = world.getTile(coords);
-        return tile == TileType.VINE;
+        Coords below = new Coords(coords.getX(), coords.getY() + 1);
+        return world.isWithinBounds(below) && world.getTile(below).isSolid();
     }
 
-    public boolean checkCocodriloCollision(Player player, List<Coco> cocodrilos) {
-        if (player == null || player.isDead() || cocodrilos == null) {
-            return false;
-        }
-        
+    /**
+     * Comprehensive player state update with all collision checks.
+     * Uses null-safe collections to avoid overloaded methods.
+     */
+
+    public void updatePlayerState(Player player, List<Coco> cocodrilos, List<Fruit> frutas) {
+        if (player == null || player.isDead()) return;
+    
         Coords playerPos = player.getPosition();
         
-        for (Coco cocodrilo : cocodrilos) {
-            if (cocodrilo.isActivo() && playerPos.equals(cocodrilo.getPosition())) {
-                System.out.println("¡Colisión con cocodrilo " + cocodrilo.getTipo() + "!");
-                return true;
+        // Update environmental states
+        player.setOnVine(isOnVine(playerPos));
+        player.setOnGround(isOnGround(playerPos));
+        
+        // Check for fatal collisions (stop if player dies)
+        if (checkFatalCollisions(player, playerPos, cocodrilos)) {
+            return;
+        }
+        
+        // Check for collectibles (non-fatal)
+        checkCollectibleCollisions(player, playerPos, frutas);
+    }
+    
+    /**
+     * Checks for collisions that can kill the player.
+     * 
+     * @returns true if player died.
+     */
+
+    private boolean checkFatalCollisions(Player player,
+        Coords playerPos, List<Coco> cocodrilos) {
+        
+        // Check deadly tiles
+        if (isDeadlyTile(playerPos)) {
+            player.die();
+            return true;
+        }
+
+        // Check cocodrilos collision
+        if (cocodrilos != null) {
+            for (Coco cocodrilo : cocodrilos) {
+                if (cocodrilo.isActivo() && playerPos.equals(cocodrilo.getPosition())) {
+                    player.die();
+                    return true;
+                }
             }
         }
+        
         return false;
     }
+    
+    /**
+     * Checks for collectible collisions
+     */
 
-    public boolean checkFruitCollision(Player player, List<Fruit> frutas) {
-        if (player == null || player.isDead() || frutas == null) {
-            return false;
-        }
-
-        Coords playerPos = player.getPosition();
+    private void checkCollectibleCollisions(Player player, Coords playerPos, List<Fruit> frutas) {
+        if (frutas == null) return;
         
         Iterator<Fruit> iterator = frutas.iterator();
         while (iterator.hasNext()) {
-            Fruit fruta = iterator.next();
-            if (fruta.isActiva() && playerPos.equals(fruta.getPosition())) {
-                player.addPoints(fruta.getPuntos());
-                System.out.println("¡Fruta recolectada! +" + fruta.getPuntos() + " puntos");
-                iterator.remove(); // Eliminar la fruta recolectada
-                return true;
+            Fruit fruit = iterator.next();
+            if (fruit.isActiva() && playerPos.equals(fruit.getPosition())) {
+                player.addPoints(fruit.getPuntos());
+                System.out.println("FRUTA!!!");
+                iterator.remove();
             }
         }
-        return false;
-    }
-
-    // Método principal actualizado
-    public void updatePlayerState(Player player, List<Coco> cocodrilos, List<Fruit> frutas) {
-        if (player == null) return;
-    
-        Coords playerPos = player.getPosition();
-    
-        // 1. Verificar si está en una enredadera
-        boolean onVine = isOnVine(playerPos);
-        player.setOnVine(onVine);
-    
-        // 2. Verificar si está en el suelo
-        boolean onGround = false;
-        if (world.isWithinBounds(playerPos)) {
-            Coords below = new Coords(playerPos.getX(), playerPos.getY() + 1);
-            if (world.isWithinBounds(below)) {
-                TileType tileBelow = world.getTile(below);
-                onGround = tileBelow.isSolid();
-            }
-        }
-
-        player.setOnGround(onGround);
-    
-        // 3. Verificar muerte por tiles mortales (agua, etc.)
-        if (world.isWithinBounds(playerPos)) {
-            TileType currentTile = world.getTile(playerPos);
-            if (currentTile.isDeadly() && !player.isDead()) {
-                player.die();
-                System.out.println("¡Jugador murió por: " + currentTile + "!");
-                return; // Si murió por tile, no verificar cocodrilos
-            }
-        }
-        
-        // 4. Verificar colisión con cocodrilos
-        if (checkCocodriloCollision(player, cocodrilos) && !player.isDead()) {
-            player.die();
-            System.out.println("¡Jugador murió por cocodrilo!");
-            return; // Si murió por cocodrilo, no verificar frutas
-        }
-
-        // 5. Verificar colisión con frutas
-        checkFruitCollision(player, frutas);
-    }
-    
-    // Método sobrecargado para compatibilidad con cocodrilos solamente
-    public void updatePlayerState(Player player, List<Coco> cocodrilos) {
-        updatePlayerState(player, cocodrilos, null);
-    }
-    
-    // Método sobrecargado para mantener compatibilidad con código existente
-    public void updatePlayerState(Player player) {
-        updatePlayerState(player, null, null);
     }
 }
