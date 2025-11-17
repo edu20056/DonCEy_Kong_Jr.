@@ -8,7 +8,7 @@ import Entities.Player;
 import Utils.Coords;
 
 public class AdapterJSON {
-        public String generarJSON(Player player, List<Fruit> frutas, List<Coco> cocos) {
+    public String generarJSON(Player player, List<Fruit> frutas, List<Coco> cocos) {
         
         StringBuilder sb = new StringBuilder();
         sb.append("{");
@@ -17,7 +17,7 @@ public class AdapterJSON {
         sb.append("\"jugador\": {");
         sb.append("\"x\": ").append(player.getX()).append(", ");
         sb.append("\"y\": ").append(player.getY()).append(", ");
-        sb.append("\"puntos\": ").append(player.getPoints()).append(", "); // Usar player.getPoints() cuando esté disponible
+        sb.append("\"puntos\": ").append(player.getPoints()).append(", ");
         sb.append("\"climbing\": ").append(player.isOnVine()).append(", "); 
         sb.append("\"right\": ").append(player.isFacingRight()); 
         sb.append("},");
@@ -26,7 +26,7 @@ public class AdapterJSON {
         sb.append("\"entidades\": [");
         for (int i = 0; i < cocos.size(); i++) {
             Coco coco = cocos.get(i);
-            String type = coco.getTipo();
+            String type = coco.getType(); // Cambiado: getTipo() -> getType()
             int x_pos = coco.getX();
             int y_pos = coco.getY();
             sb.append("{\"tipo\": \"").append(type).append("\", \"x\": ")
@@ -41,13 +41,13 @@ public class AdapterJSON {
         if (frutas != null) {
             int frutasActivas = 0;
             for (Fruit fruta : frutas) {
-                if (fruta.isActiva()) {
+                if (fruta.isActive()) { // Cambiado: isActiva() -> isActive()
                     if (frutasActivas > 0) sb.append(",");
                     Coords pos = fruta.getPosition();
-                    sb.append("{\"tipo\": \"").append(fruta.getTipo())
+                    sb.append("{\"tipo\": \"").append(fruta.getType()) // Cambiado: getTipo() -> getType()
                       .append("\", \"x\": ").append(pos.getX())
                       .append(", \"y\": ").append(pos.getY())
-                      .append(", \"puntos\": ").append(fruta.getPuntos())
+                      .append(", \"puntos\": ").append(fruta.getPoints()) // Cambiado: getPuntos() -> getPoints()
                       .append("}");
                     frutasActivas++;
                 }

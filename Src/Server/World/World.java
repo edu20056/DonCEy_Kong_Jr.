@@ -7,6 +7,8 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Represents the game world composed of tiles arranged in a 2D grid.
@@ -17,6 +19,7 @@ public class World {
     private final Map<Coords, TileType> grid;
     private int width;
     private int height;
+    private List<Coords> validVinePositions;
     
     /**
      * Constructs a new World by loading tile data from the specified file.
@@ -26,7 +29,9 @@ public class World {
 
     public World(String filename) {
         grid = new HashMap<>();
+        validVinePositions = new ArrayList<>();
         loadWorldFromFile(filename);
+        cacheValidVinePositions();
     }
 
     // --- GETTERS ---
@@ -34,13 +39,12 @@ public class World {
     public int getWidth() { return width; }
     public int getHeight() { return height; }
 
-
     /**
      * Loads world data from a text file where each character represents a tile.
      *
      * @param filename the path to the world file
      */
-
+    
     private void loadWorldFromFile(String filename) {
         try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
             String line;
@@ -65,12 +69,127 @@ public class World {
     }
     
     /**
+     * Caches all valid vine positions where entities can be placed.
+     * This method scans the grid and stores coordinates of VINE tiles.
+     */
+    
+    private void cacheValidVinePositions() {
+        validVinePositions.clear();
+        
+        for (Map.Entry<Coords, TileType> entry : grid.entrySet()) {
+            if (entry.getValue() == TileType.VINE) {
+                validVinePositions.add(entry.getKey());
+            }
+        }
+    }
+    
+    /**
+     * Gets all valid positions where entities (crocodiles, fruits) can be placed.
+     * Entities can only be placed on VINE tiles.
+     *
+     * @return List of coordinates representing valid vine positions
+     */
+    
+    public List<Coords> getValidEntityPositions() {
+        return new ArrayList<>(validVinePositions);
+    }
+    
+    /**
+     * Gets a subset of valid positions within specified bounds.
+     * Useful for limiting entity placement to certain areas of the world.
+     *
+     * @param startX starting X coordinate (inclusive)
+     * @param startY starting Y coordinate (inclusive)
+     * @param endX ending X coordinate (exclusive)
+     * @param endY ending Y coordinate (exclusive)
+     * @return List of valid vine positions within the specified bounds
+     */
+    
+    public List<Coords> getValidEntityPositionsInArea(int startX, int startY, int endX, int endY) {
+        List<Coords> positionsInArea = new ArrayList<>();
+        
+        for (Coords position : validVinePositions) {
+            int x = position.getX();
+            int y = position.getY();
+            
+            if (x >= startX && x < endX && y >= startY && y < endY) {
+                positionsInArea.add(position);
+            }
+        }
+        
+        return positionsInArea;
+    }
+    
+    /**
+     * Checks if a specific position is valid for entity placement.
+     * A position is valid if it contains a VINE tile.
+     *
+     * @param coords the coordinates to check
+     * @return true if the position is valid for entity placement, false otherwise
+     */
+    
+    public boolean isValidEntityPosition(Coords coords) {
+        if (!isWithinBounds(coords)) {
+            return false;
+        }
+        
+        TileType tile = getTile(coords);
+        return tile == TileType.VINE;
+    }
+    
+    /**
+     * Gets a random valid position from all available vine positions.
+     *
+     * @return a random valid position, or null if no valid positions exist
+     */
+    
+    public Coords getRandomValidPosition() {
+        if (validVinePositions.isEmpty()) {
+            return null;
+        }
+        
+        int randomIndex = (int) (Math.random() * validVinePositions.size());
+        return validVinePositions.get(randomIndex);
+    }
+    
+    /**
+     * Gets the number of valid positions available for entity placement.
+     *
+     * @return count of valid vine positions
+     */
+    
+    public int getValidPositionCount() {
+        return validVinePositions.size();
+    }
+    
+    /**
+     * Checks if there are any valid positions available for entity placement.
+     *
+     * @return true if there are valid positions, false otherwise
+     */
+    
+    public boolean hasValidPositions() {
+        return !validVinePositions.isEmpty();
+    }
+    
+    /**
+     * Prints all valid positions to console for debugging purposes.
+     */
+    
+    public void printValidPositions() {
+        System.out.println("Valid entity positions (" + validVinePositions.size() + " total):");
+        for (Coords position : validVinePositions) {
+            System.out.println("  (" + position.getX() + ", " + position.getY() + ")");
+        }
+    }
+    
+    /**
      * Checks if the given coordinates are within the world boundaries.
      *
      * @param coords the coordinates to check
      * @return true if coordinates are within bounds, false otherwise
      */
-
+    
     public boolean isWithinBounds(Coords coords) {
         return coords.getX() >= 0 && coords.getX() < width && 
                coords.getY() >= 0 && coords.getY() < height;
@@ -83,7 +202,7 @@ public class World {
      * @param coords the coordinates to query
      * @return the TileType at specified coordinates, or EMPTY if not found/out of bounds
      */
-
+ 
     public TileType getTile(Coords coords) {
         return grid.getOrDefault(coords, TileType.EMPTY);
     }

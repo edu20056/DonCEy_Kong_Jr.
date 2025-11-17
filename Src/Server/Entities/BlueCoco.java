@@ -1,64 +1,85 @@
-// Entities/BlueCoco.java
 package Entities;
 
 import Utils.Coords;
 import World.World;
 import World.TileType;
 
+/**
+ * Blue cocodrile enemy that moves vertically on vines and falls when reaching the end.
+ * This cocodrile starts on a vine, moves downward until the vine ends, then falls to the ground.
+ */
+
 public class BlueCoco extends Coco {
-    private boolean enLiana = true;
-    private boolean cayendo = false;
+    private boolean onVine = true;
+    private boolean falling = false;
     
-    public BlueCoco(int x, int y) {
-        super(x, y, "AZUL");
-        System.out.println("Cocodrilo Azul creado en: " + x + ", " + y);
+    /**
+     * Constructs a new BlueCoco at the specified coordinates with custom speed.
+     * 
+     * @param x The initial X coordinate in the game world
+     * @param y The initial Y coordinate in the game world
+     * @param movementSpeed The movement speed (higher = faster)
+     */
+
+    public BlueCoco(int x, int y, int movementSpeed) {
+        super(x, y, "AZUL", movementSpeed);
     }
+
+    /**
+     * Gets the facing direction of the blue cocodrile.
+     * Blue cocodriles always face downward during movement.
+     * 
+     * @return true indicating the cocodrile is facing downward
+     */
 
     @Override
     public boolean getIsFacingDown() {
         return true;
     }
     
+    /**
+     * Updates the blue cocodrile's state and position.
+     * Handles vine movement, falling behavior, and deactivation.
+     * The cocodrile moves downward on vines, falls when vines end,
+     * and deactivates when it reaches solid ground.
+     * 
+     * @param world The game world for collision detection and tile checking
+     */
+
     @Override
-    public void actualizar(World world) {
-        if (!isActivo()) return;
+    public void update(World world) {
+        if (!isActive()) return;
         
-        if (enLiana) {
-            // Está en liana - bajar gradualmente
-            Coords abajo = new Coords(getX(), getY() + 1);
-            
-            if (puedeMoverseA(abajo, world) && world.getTile(abajo) == TileType.VINE) {
-                // Sigue en liana, bajar
-                setPosition(abajo);
-            } else {
-                // Ya no hay liana abajo, empezar a caer
-                enLiana = false;
-                cayendo = true;
-                System.out.println("Cocodrilo Azul empezó a caer desde: " + getPosition());
-            }
-        } else if (cayendo) {
-            // Está cayendo - caer hasta tocar el suelo
-            Coords abajo = new Coords(getX(), getY() + 1);
-            
-            if (puedeMoverseA(abajo, world)) {
-                setPosition(abajo);
-                
-                // Verificar si llegó al suelo
-                Coords bajoAbajo = new Coords(getX(), getY() + 1);
-                if (!puedeMoverseA(bajoAbajo, world)) {
-                    // Tocó el suelo, dejar de caer
-                    cayendo = false;
-                    System.out.println("Cocodrilo Azul llegó al suelo en: " + getPosition());
-                }
-            } else {
-                // Chocó con algo, dejar de caer
-                cayendo = false;
-            }
+        if (!shouldMove()) {
+            return;
         }
         
-        // Si no está en liana ni cayendo, se desactiva
-        if (!enLiana && !cayendo) {
-            setActivo(false);
+        if (onVine) {
+            Coords below = new Coords(getX(), getY() + 1);
+            
+            if (canMoveTo(below, world) && world.getTile(below) == TileType.VINE) {
+                setPosition(below);
+            } else {
+                onVine = false;
+                falling = true;
+            }
+        } else if (falling) {
+            Coords below = new Coords(getX(), getY() + 1);
+            
+            if (canMoveTo(below, world)) {
+                setPosition(below);
+                
+                Coords belowBelow = new Coords(getX(), getY() + 1);
+                if (!canMoveTo(belowBelow, world)) {
+                    falling = false;
+                }
+            } else {
+                falling = false;
+            }
+        }
+  
+        if (!onVine && !falling) {
+            setActive(false);
         }
     }
 }

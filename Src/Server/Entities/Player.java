@@ -8,13 +8,12 @@ import Utils.Coords;
  */
 
 public class Player extends Entity {
-    private int jumpStrength;
+    final private int jumpStrength;
     private boolean facingRight;
     private boolean onGround;
     private boolean onVine;
     private boolean dead;
     private int points;
-    
     
     /**
      * Constructs a new Player entity at the specified coordinates.
@@ -66,12 +65,15 @@ public class Player extends Entity {
         return new Coords(getX(), getY() + 1);
     }
     public Coords[] calculateJumpPositions() {
-        return new Coords[] {
-            new Coords(getX(), getY() - 1),
-            new Coords(getX(), getY() - 2) 
-        };
+        Coords[] jumpPositions = new Coords[jumpStrength];
+
+        for (int i = 0; i < jumpStrength; i++) {
+            jumpPositions[i] = new Coords(getX(), getY() - (i + 1));
+        }
+
+        return jumpPositions;
     }
-    
+
     /**
      * These methods apply validated movements to the player
      * Only processes movement if the player is alive.

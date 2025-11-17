@@ -1,5 +1,7 @@
 import java.net.Socket;
 import java.util.*;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 
 import Network.Server;
 import Network.AdapterJSON;
@@ -16,9 +18,9 @@ import Entities.Fruit;
 
 public class Main {
     // Constantes
-    private static final Coords SPAWN_J1 = new Coords(2, 1);
-    private static final Coords SPAWN_J2 = new Coords(8, 1);
-    private static final int GAME_LOOP_DELAY = 200;
+    private static final Coords SPAWN_J1 = new Coords(0, 0);
+    private static final Coords SPAWN_J2 = new Coords(8, 3);
+    private static final int GAME_LOOP_DELAY = 175;
     private static final String LEVEL_PATH = "World/Levels/lvl1.txt";
     
     // Jugadores y sus sistemas (inicialmente null)
@@ -44,6 +46,10 @@ public class Main {
     private static List<Fruit> frutasJ1 = new ArrayList<>();
     private static List<Fruit> frutasJ2 = new ArrayList<>();
 
+    // Scanner para entrada de consola
+    private static Scanner scanner = new Scanner(System.in);
+    private static boolean menuActivo = true;
+
     // ========== INICIALIZACIÓN ==========
 
     public static void main(String[] args) {
@@ -55,6 +61,13 @@ public class Main {
         System.out.println("=== SERVIDOR INICIADO ===");
         System.out.println("Esperando conexiones de clientes...");
         System.out.println("Los mundos se crearán cuando los jugadores se conecten");
+        
+        // Iniciar hilo del menú interactivo
+        Thread menuThread = new Thread(() -> {
+            mostrarMenuInteractivo();
+        });
+        menuThread.setDaemon(true);
+        menuThread.start();
         
         Thread gameThread = new Thread(() -> {
             while (true) {
@@ -71,6 +84,208 @@ public class Main {
         });
         gameThread.setDaemon(true);
         gameThread.start();
+    }
+
+    // ========== MENÚ INTERACTIVO ==========
+
+    private static void mostrarMenuInteractivo() {
+        while (menuActivo) {
+            try {
+                Thread.sleep(2000); // Esperar 2 segundos entre menús
+                mostrarOpcionesMenu();
+                
+                if (System.in.available() > 0) {
+                    int opcion = scanner.nextInt();
+                    scanner.nextLine(); // Limpiar buffer
+                    
+                    switch (opcion) {
+                        case 1:
+                            agregarCocodrilo();
+                            break;
+                        case 2:
+                            agregarFruta();
+                            break;
+                        case 3:
+                            mostrarEstadoActual();
+                            break;
+                        case 4:
+                            menuActivo = false;
+                            System.out.println("Menú desactivado.");
+                            break;
+                        default:
+                            System.out.println("Opción inválida.");
+                    }
+                }
+            } catch (Exception e) {
+                // Ignorar excepciones de entrada/salida
+            }
+        }
+    }
+
+    private static void mostrarOpcionesMenu() {
+        System.out.println("\n=== MENÚ INTERACTIVO ===");
+        System.out.println("1. Agregar Cocodrilo");
+        System.out.println("2. Agregar Fruta");
+        System.out.println("3. Mostrar Estado Actual");
+        System.out.println("4. Salir del Menú");
+        System.out.print("Seleccione una opción: ");
+    }
+
+    private static void agregarCocodrilo() {
+        try {
+            System.out.println("\n--- AGREGAR COCODRILO ---");
+            
+            // Seleccionar jugador
+            int jugador = seleccionarJugador();
+            if (jugador == 0) return;
+            
+            // Seleccionar tipo de cocodrilo
+            System.out.println("Tipos de cocodrilo:");
+            System.out.println("1. Rojo (lento)");
+            System.out.println("2. Azul (rápido)");
+            System.out.print("Seleccione tipo: ");
+            int tipo = scanner.nextInt();
+            
+            if (tipo < 1 || tipo > 2) {
+                System.out.println("Tipo inválido.");
+                return;
+            }
+            
+            // Ingresar posición
+            System.out.print("Posición X: ");
+            int x = scanner.nextInt();
+            System.out.print("Posición Y: ");
+            int y = scanner.nextInt();
+            
+            // Ingresar velocidad
+            System.out.print("Velocidad (1=lento, 2=rápido): ");
+            int velocidad = scanner.nextInt();
+            
+            // Crear cocodrilo
+            Coco nuevoCoco;
+            if (tipo == 1) {
+                nuevoCoco = new RedCoco(x, y, velocidad);
+            } else {
+                nuevoCoco = new BlueCoco(x, y, velocidad);
+            }
+            
+            // Agregar al jugador correspondiente
+            if (jugador == 1 && j1Activo) {
+                cocodrilosJ1.add(nuevoCoco);
+                System.out.println("✅ Cocodrilo agregado al Jugador 1 en (" + x + "," + y + ")");
+            } else if (jugador == 2 && j2Activo) {
+                cocodrilosJ2.add(nuevoCoco);
+                System.out.println("✅ Cocodrilo agregado al Jugador 2 en (" + x + "," + y + ")");
+            } else {
+                System.out.println("❌ No se pudo agregar el cocodrilo - Jugador no activo");
+            }
+            
+        } catch (Exception e) {
+            System.out.println("❌ Error al agregar cocodrilo: " + e.getMessage());
+            scanner.nextLine(); // Limpiar buffer en caso de error
+        }
+    }
+
+    private static void agregarFruta() {
+        try {
+            System.out.println("\n--- AGREGAR FRUTA ---");
+            
+            // Seleccionar jugador
+            int jugador = seleccionarJugador();
+            if (jugador == 0) return;
+            
+            // Seleccionar tipo de fruta
+            System.out.println("Tipos de fruta:");
+            System.out.println("1. BANANA");
+            System.out.println("2. STRAWBERRY");
+            System.out.println("3. ORANGE");
+            System.out.print("Seleccione tipo: ");
+            int tipo = scanner.nextInt();
+            
+            String tipoFruta;
+            switch (tipo) {
+                case 1: tipoFruta = "BANANA"; break;
+                case 2: tipoFruta = "STRAWBERRY"; break;
+                case 3: tipoFruta = "ORANGE"; break;
+                default:
+                    System.out.println("Tipo inválido.");
+                    return;
+            }
+            
+            // Ingresar posición
+            System.out.print("Posición X: ");
+            int x = scanner.nextInt();
+            System.out.print("Posición Y: ");
+            int y = scanner.nextInt();
+            
+            // Crear fruta
+            Fruit nuevaFruta = new Fruit(x, y, tipoFruta);
+            
+            // Agregar al jugador correspondiente
+            if (jugador == 1 && j1Activo) {
+                frutasJ1.add(nuevaFruta);
+                System.out.println("✅ Fruta " + tipoFruta + " agregada al Jugador 1 en (" + x + "," + y + ")");
+            } else if (jugador == 2 && j2Activo) {
+                frutasJ2.add(nuevaFruta);
+                System.out.println("✅ Fruta " + tipoFruta + " agregada al Jugador 2 en (" + x + "," + y + ")");
+            } else {
+                System.out.println("❌ No se pudo agregar la fruta - Jugador no activo");
+            }
+            
+        } catch (Exception e) {
+            System.out.println("❌ Error al agregar fruta: " + e.getMessage());
+            scanner.nextLine(); // Limpiar buffer en caso de error
+        }
+    }
+
+    private static int seleccionarJugador() {
+        System.out.println("Seleccionar jugador:");
+        System.out.println("1. Jugador 1" + (j1Activo ? " (ACTIVO)" : " (INACTIVO)"));
+        System.out.println("2. Jugador 2" + (j2Activo ? " (ACTIVO)" : " (INACTIVO)"));
+        System.out.print("Seleccione jugador (0 para cancelar): ");
+        
+        int jugador = scanner.nextInt();
+        if (jugador == 0) {
+            System.out.println("Operación cancelada.");
+            return 0;
+        }
+        
+        if (jugador == 1 && !j1Activo) {
+            System.out.println("❌ Jugador 1 no está activo.");
+            return 0;
+        }
+        
+        if (jugador == 2 && !j2Activo) {
+            System.out.println("❌ Jugador 2 no está activo.");
+            return 0;
+        }
+        
+        if (jugador < 1 || jugador > 2) {
+            System.out.println("❌ Jugador inválido.");
+            return 0;
+        }
+        
+        return jugador;
+    }
+
+    private static void mostrarEstadoActual() {
+        System.out.println("\n=== ESTADO ACTUAL ===");
+        
+        System.out.println("JUGADOR 1: " + (j1Activo ? "ACTIVO" : "INACTIVO"));
+        if (j1Activo && player1 != null) {
+            System.out.println("  - Posición: (" + player1.getPosition().getX() + "," + player1.getPosition().getY() + ")");
+            System.out.println("  - Puntos: " + player1.getPoints());
+            System.out.println("  - Cocodrilos: " + cocodrilosJ1.size());
+            System.out.println("  - Frutas: " + frutasJ1.size());
+        }
+        
+        System.out.println("JUGADOR 2: " + (j2Activo ? "ACTIVO" : "INACTIVO"));
+        if (j2Activo && player2 != null) {
+            System.out.println("  - Posición: (" + player2.getPosition().getX() + "," + player2.getPosition().getY() + ")");
+            System.out.println("  - Puntos: " + player2.getPoints());
+            System.out.println("  - Cocodrilos: " + cocodrilosJ2.size());
+            System.out.println("  - Frutas: " + frutasJ2.size());
+        }
     }
 
     // ========== GESTIÓN DE JUGADORES ==========
@@ -226,28 +441,30 @@ public class Main {
 
     private static void inicializarCocodrilosJ1() {
         cocodrilosJ1.clear();
-        cocodrilosJ1.add(new RedCoco(11, 6));
-        cocodrilosJ1.add(new BlueCoco(0, 6));
+        // Crear cocodrilos con velocidad en el constructor
+        cocodrilosJ1.add(new RedCoco(11, 6, 1)); // Rojo lento
+        cocodrilosJ1.add(new BlueCoco(0, 6, 2)); // Azul rápido
     }
 
     private static void inicializarCocodrilosJ2() {
         cocodrilosJ2.clear();
-        cocodrilosJ2.add(new RedCoco(11, 8));
-        cocodrilosJ2.add(new BlueCoco(0, 3));
+        // Crear cocodrilos con velocidad en el constructor
+        cocodrilosJ2.add(new RedCoco(11, 8, 1)); // Rojo lento
+        cocodrilosJ2.add(new BlueCoco(0, 3, 2)); // Azul rápido
     }
 
     private static void inicializarFrutasJ1() {
         frutasJ1.clear();
         frutasJ1.add(new Fruit(3, 4, "BANANA"));
         frutasJ1.add(new Fruit(7, 12, "STRAWBERRY"));
-        frutasJ1.add(new Fruit(6, 6, "NARANJA"));
+        frutasJ1.add(new Fruit(6, 6, "ORANGE"));
     }
 
     private static void inicializarFrutasJ2() {
         frutasJ2.clear();
         frutasJ2.add(new Fruit(3, 4, "BANANA"));
         frutasJ2.add(new Fruit(7, 12, "STRAWBERRY"));
-        frutasJ2.add(new Fruit(6, 6, "NARANJA"));
+        frutasJ2.add(new Fruit(6, 6, "ORANGE"));
     }
 
     // ========== ACTUALIZACIÓN DEL JUEGO ==========
@@ -261,20 +478,20 @@ public class Main {
         // Solo actualizar cocodrilos si el jugador está activo
         if (j1Activo && world1 != null) {
             for (Coco cocodrilo : cocodrilosJ1) {
-                if (cocodrilo.isActivo()) {
-                    cocodrilo.actualizar(world1);
+                if (cocodrilo.isActive()) {
+                    cocodrilo.update(world1);
                 }
             }
-            cocodrilosJ1.removeIf(c -> !c.isActivo());
+            cocodrilosJ1.removeIf(c -> !c.isActive());
         }
         
         if (j2Activo && world2 != null) {
             for (Coco cocodrilo : cocodrilosJ2) {
-                if (cocodrilo.isActivo()) {
-                    cocodrilo.actualizar(world2);
+                if (cocodrilo.isActive()) {
+                    cocodrilo.update(world2);
                 }
             }
-            cocodrilosJ2.removeIf(c -> !c.isActivo());
+            cocodrilosJ2.removeIf(c -> !c.isActive());
         }
     }
 
@@ -320,39 +537,44 @@ public class Main {
             String accion = "";
             
             switch (movimiento) {
-                case 1: // ARRIBA
-                    if (jugador.isOnGround()) {
-                        // NUEVO: Usar el sistema de colisión para saltos
-                        Coords[] jumpPositions = jugador.calculateJumpPositions();
-                        Coords jumpTarget = null;
-                        
-                        // Intentar salto de 2 bloques primero
-                        if (collision.canMoveTo(jumpPositions[0]) && collision.canMoveTo(jumpPositions[1])) {
-                            jumpTarget = jumpPositions[1]; // Salto alto
-                        } else if (collision.canMoveTo(jumpPositions[0])) {
-                            jumpTarget = jumpPositions[0]; // Salto normal
-                        }
-                        
-                        if (jumpTarget != null) {
-                            jugador.applyJump(jumpTarget);
-                            accion = "SALTÓ desde el suelo";
-                        } else {
-                            accion = "no puede saltar (obstáculo)";
-                        }
-                    } else if (jugador.isOnVine()) {
-                        // NUEVO: Usar el sistema de colisión para movimiento vertical
-                        Coords newPos = jugador.calculateMoveUp();
-                        if (collision.canMoveTo(newPos)) {
-                            jugador.applyMovement(newPos, jugador.isFacingRight());
-                            accion = "SUBIÓ por la liana";
-                        } else {
-                            accion = "no puede subir (obstáculo)";
-                        }
+
+            case 1: // ARRIBA/SALTO
+                if (jugador.isOnVine()) {
+                    // Movimiento en enredadera - movimiento gradual de 1 bloque
+                    Coords newPos = jugador.calculateMoveUp();
+                    if (collision.canMoveTo(newPos)) {
+                        jugador.applyMovement(newPos, jugador.isFacingRight());
+                        accion = "SUBIÓ por la liana";
                     } else {
-                        accion = "no puede moverse arriba";
+                        accion = "no puede subir (obstáculo)";
                     }
-                    break;
+                } else if (jugador.isOnGround()) {
+                    // Salto normal desde el suelo
+                    Coords[] jumpPositions = jugador.calculateJumpPositions();
+                    Coords jumpTarget = null;
                     
+                    // Buscar la máxima altura alcanzable
+                    int maxAltura = 0;
+                    for (int i = 0; i < jumpPositions.length; i++) {
+                        if (collision.canMoveTo(jumpPositions[i])) {
+                            maxAltura = i + 1;
+                        } else {
+                            break;
+                        }
+                    }
+                    
+                    if (maxAltura > 0) {
+                        jumpTarget = jumpPositions[maxAltura - 1];
+                        jugador.applyJump(jumpTarget);
+                        accion = "SALTÓ " + maxAltura + " bloques de altura";
+                    } else {
+                        accion = "no puede saltar (obstáculo arriba)";
+                    }
+                } else {
+                    accion = "no puede moverse arriba (en el aire)";
+                }
+                break;
+
                 case 2: // Derecha
                     // NUEVO: Usar el sistema de colisión para movimiento horizontal
                     Coords rightPos = jugador.calculateMoveRight();

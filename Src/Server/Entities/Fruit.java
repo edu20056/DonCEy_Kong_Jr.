@@ -3,62 +3,70 @@ package Entities;
 
 import Utils.Coords;
 
+/**
+ * Represents a collectible fruit item in the game world.
+ * Fruits provide points when collected by the player and can have different types
+ * with varying point values. Each fruit has an active state that determines
+ * whether it can be collected.
+ */
+
 public class Fruit extends Entity {
-    private boolean activa;
-    private final int puntos;
-    private final String tipo;
+    private boolean active;
+    private final int points;
+    private final String type;
     
-    public Fruit(int x, int y, String tipo, int puntos) {
+    /**
+     * Constructs a new Fruit at the specified coordinates with custom point value.
+     * 
+     * @param x The X coordinate in the game world
+     * @param y The Y coordinate in the game world
+     * @param type The type identifier for this fruit
+     * @param points The point value awarded when collected
+     */
+
+    public Fruit(int x, int y, String type, int points) {
         super(x, y);
-        this.activa = true;
-        this.tipo = tipo;
-        this.puntos = puntos;
+        this.active = true;
+        this.type = type;
+        this.points = points;
     }
     
-    // Constructor simplificado con puntos por defecto según el tipo
-    public Fruit(int x, int y, String tipo) {
-        this(x, y, tipo, obtenerPuntosPorTipo(tipo));
+    /**
+     * Constructs a new Fruit at the specified coordinates with default point value based on type.
+     * The point value is automatically determined by the fruit type.
+     * 
+     * @param x The X coordinate in the game world
+     * @param y The Y coordinate in the game world
+     * @param type The type identifier for this fruit
+     */
+
+    public Fruit(int x, int y, String type) {
+        this(x, y, type, getPointsByType(type));
     }
     
-    private static int obtenerPuntosPorTipo(String tipo) {
-        switch (tipo.toUpperCase()) {
-            case "MANZANA": return 10;
+    /**
+     * Determines the default point value for a given fruit type.
+     * 
+     * @param type The fruit type identifier
+     * @return The default point value for the specified type
+     */
+
+    private static int getPointsByType(String type) {
+        switch (type.toUpperCase()) {
+            case "APPLE": return 10;
             case "BANANA": return 15;
-            case "UVA": return 5;
-            case "FRUTILLA": return 20;
-            case "NARANJA": return 8;
+            case "GRAPE": return 5;
+            case "STRAWBERRY": return 20;
+            case "ORANGE": return 8;
             default: return 10;
         }
     }
-    
-    public boolean isActiva() {
-        return activa;
-    }
-    
-    public void setActiva(boolean activa) {
-        this.activa = activa;
-    }
-    
-    public int getPuntos() {
-        return puntos;
-    }
-    
-    public String getTipo() {
-        return tipo;
-    }
-    
-    public void recolectar() {
-        this.activa = false;
-        System.out.println("¡Fruta " + tipo + " recolectada! +" + puntos + " puntos");
-    }
-    
-    @Override
-    public String toString() {
-        return "Fruit{" +
-                "tipo='" + tipo + '\'' +
-                ", puntos=" + puntos +
-                ", activa=" + activa +
-                ", posición=" + getPosition() +
-                '}';
-    }
+
+    // --- GETTERS AND SETTERS --- //
+
+    public boolean isActive() { return active; }
+    public void setActive(boolean active) { this.active = active; }
+    public int getPoints() { return points; }
+    public String getType() { return type; }
+    public void collect() { this.active = false; }
 }
