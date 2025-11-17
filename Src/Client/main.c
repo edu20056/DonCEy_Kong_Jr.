@@ -11,6 +11,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <stdatomic.h>
+
+atomic_int terminar_es = 0;
 
 
 // Variables de conexión
@@ -40,6 +43,9 @@ typedef struct {
     int right;
     int points;
 } Jugador;
+
+// Hilo de cliente
+thrd_t thread_client;
 
 // Instancia global del jugador
 Jugador jugador = {10, 10, 0, 0, 0};
@@ -71,6 +77,10 @@ void extraer_string(const char *p, char *dest, int max_len) {
 
     strncpy(dest, inicio, len);
     dest[len] = '\0';
+}
+
+void terminarEspectador() {
+    terminar_es = 1;
 }
 
 void procesarJSON(const char *json) {
@@ -277,6 +287,7 @@ int clientLoop(void *arg) {
 
             if (strstr(buffer, "ERROR") != NULL) {
                 printf("Error al registrarse. Saliendo...\n");
+                terminarEspectador();
                 close(sock);
                 return 0;
             }
@@ -360,6 +371,7 @@ int clientLoop(void *arg) {
             ssize_t bytes = recv(sock, buffer, sizeof(buffer) - 1, 0);
             if (bytes <= 0) {
                 printf("Error: No se pudo recibir lista\n");
+                terminarEspectador();
                 close(sock);
                 return 0;
             }
@@ -400,6 +412,7 @@ int clientLoop(void *arg) {
             ssize_t bytes = recv(sock, buffer, sizeof(buffer) - 1, 0);
             if (bytes <= 0) {
                 printf("Conexión terminada.\n");
+                terminarEspectador();
                 break;
             }
             buffer[bytes] = '\0';
@@ -422,6 +435,7 @@ int clientLoop(void *arg) {
 
     close(sock);
     printf("Conexión cerrada.\n");
+    terminarEspectador();
     return 0;
 }
 
@@ -436,7 +450,7 @@ int main() {
     thrd_detach(thread_client);
 
     // --- Loop gráfico principal ---
-    while (!WindowShouldClose()) {
+    while (!WindowShouldClose() && !terminar_es) {
         BeginDrawing();
         ClearBackground(BLACK);
 

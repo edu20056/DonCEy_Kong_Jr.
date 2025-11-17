@@ -178,7 +178,6 @@ public class Main {
 
     private static void limpiarJugadoresDesconectados() {
         // Verificar si J1 estaba activo pero ahora está desconectado
-        System.out.println(servidor.J1_ING + " " + servidor.J1_desc + servidor.getJugadoresSize());
         if (servidor.J1_ING && servidor.J1_desc) {
             servidor.J1_desc = false;
             System.out.println("🔌 Jugador 1 desconectado, liberando recursos...");
