@@ -12,6 +12,8 @@ public class Server {
     private final Map<String, List<Socket>> espectadoresPorJugador = new HashMap<>();
     public boolean J1_ING = false;
     public boolean J2_ING = false;
+    public boolean J1_desc = false;
+    public boolean J2_desc = false;
     public String J1_NAME = "";
     public String J2_NAME = "";
     public final List<String> mensajes_j1 = new ArrayList<>();
@@ -349,6 +351,13 @@ public class Server {
                         }
                     }
                     System.out.println("Jugador desconectado: " + jugadorAsociado);
+                    if (jugadorAsociado == J1_NAME){
+                        J1_desc = true;
+                    }
+                    else { // J2_NAME
+                        J2_desc = true;
+                    }
+                    System.out.println(J1_ING + " " + J1_desc + " " + J2_ING + " " + J2_desc);
                 } else if ("SPECTATOR".equals(tipo) && jugadorAsociado != null) {
                     List<Socket> lista = espectadoresPorJugador.get(jugadorAsociado);
                     if (lista != null) {

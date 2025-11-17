@@ -81,40 +81,52 @@ public class Main {
         // Solo crear jugador 1 si hay al menos 1 jugador conectado y no está activo
         if (j1Activo) {
             Socket s1 = servidor.getSocketJugador(servidor.J1_NAME);
+
+            if (s1 == null || s1.isClosed()) {
+                return;                    
+            }
+
             String json1 = Main.generarJSON(player1, frutasJ1, cocodrilosJ1);
             servidor.enviarA(s1, json1);
             servidor.enviarAMisEspectadores(servidor.J1_NAME, json1);
         }
-        if (!j1Activo && servidor.getJugadoresSize() >= 1) {
-            try {
-                System.out.println("🔄 Inicializando mundo para Jugador 1...");
-                
-                // Crear mundo y sistemas para J1
-                world1 = new World(LEVEL_PATH);
-                collisionSystem1 = new CollisionSystem(world1);
-                gravitySystem1 = new GravitySystem(collisionSystem1);
-                player1 = new Player(SPAWN_J1.getX(), SPAWN_J1.getY());
-                
-                // Inicializar estado del jugador
-                collisionSystem1.updatePlayerState(player1);
-                
-                // Inicializar entidades
-                inicializarCocodrilosJ1();
-                inicializarFrutasJ1();
-                
-                j1Activo = true;
-                servidor.J1_ING = true;
-                
-                System.out.println("✅ Jugador 1 instanciado con su propio mundo");
-                System.out.println("   - Mundo: " + world1.getWidth() + "x" + world1.getHeight());
-                System.out.println("   - Cocodrilos: " + cocodrilosJ1.size());
-                System.out.println("   - Frutas: " + frutasJ1.size());
-                
+        else {
+            if (servidor.getJugadoresSize() == 1 && !j2Activo || // Se conecta por primera vez J1 (aunque antes se pudo haber conectado y luego desconectado)
+                servidor.getJugadoresSize() == 2 && j2Activo){ // Se conecta J1 luego de haberse desconectado mientras J2 estaba jugando.
+                try {
+                    System.out.println("🔄 Inicializando mundo para Jugador 1...");
+                    
+                    // Crear mundo y sistemas para J1
+                    world1 = new World(LEVEL_PATH);
+                    collisionSystem1 = new CollisionSystem(world1);
+                    gravitySystem1 = new GravitySystem(collisionSystem1);
+                    player1 = new Player(SPAWN_J1.getX(), SPAWN_J1.getY());
+                    
+                    // Inicializar estado del jugador
+                    collisionSystem1.updatePlayerState(player1);
+                    
+                    // Inicializar entidades
+                    inicializarCocodrilosJ1();
+                    inicializarFrutasJ1();
+                    
+                    j1Activo = true;
+                    servidor.J1_ING = true;
+                    
+                    System.out.println("✅ Jugador 1 instanciado con su propio mundo");
+                    System.out.println("   - Mundo: " + world1.getWidth() + "x" + world1.getHeight());
+                    System.out.println("   - Cocodrilos: " + cocodrilosJ1.size());
+                    System.out.println("   - Frutas: " + frutasJ1.size());
+                    
 
-            } catch (Exception e) {
-                System.err.println("❌ Error al crear mundo para J1: " + e.getMessage());
-                limpiarJugador1();
+                } catch (Exception e) {
+                    System.err.println("❌ Error al crear mundo para J1: " + e.getMessage());
+                    limpiarJugador1();
+                }
             }
+        }
+
+        if (!j1Activo && servidor.getJugadoresSize() >= 1 ) {
+            
         }
     }
 
@@ -122,6 +134,12 @@ public class Main {
         // Solo crear jugador 2 si hay al menos 2 jugadores conectados y no está activo
         if (j2Activo) {
             Socket s2 = servidor.getSocketJugador(servidor.J2_NAME);
+
+            if (s2 == null || s2.isClosed()) {
+                servidor.J2_desc = true;   
+                return;                    
+            }
+
             String json2 = Main.generarJSON(player2, frutasJ2, cocodrilosJ2);
             servidor.enviarA(s2, json2);
             servidor.enviarAMisEspectadores(servidor.J2_NAME, json2);
@@ -160,13 +178,16 @@ public class Main {
 
     private static void limpiarJugadoresDesconectados() {
         // Verificar si J1 estaba activo pero ahora está desconectado
-        if (j1Activo && servidor.getSocketJugador(servidor.J1_NAME) == null) {
+        System.out.println(servidor.J1_ING + " " + servidor.J1_desc + servidor.getJugadoresSize());
+        if (servidor.J1_ING && servidor.J1_desc) {
+            servidor.J1_desc = false;
             System.out.println("🔌 Jugador 1 desconectado, liberando recursos...");
             limpiarJugador1();
         }
         
         // Verificar si J2 estaba activo pero ahora está desconectado
-        if (j2Activo && servidor.getSocketJugador(servidor.J2_NAME) == null) {
+        if (j2Activo && servidor.J2_desc) {
+            servidor.J2_desc = false;
             System.out.println("🔌 Jugador 2 desconectado, liberando recursos...");
             limpiarJugador2();
         }
@@ -181,6 +202,7 @@ public class Main {
         frutasJ1.clear();
         j1Activo = false;
         servidor.J1_ING = false;
+        servidor.J1_desc = false;
         System.out.println("🗑️  Recursos de Jugador 1 liberados");
     }
 
@@ -193,6 +215,7 @@ public class Main {
         frutasJ2.clear();
         j2Activo = false;
         servidor.J2_ING = false;
+        servidor.J2_desc = false;
         System.out.println("🗑️  Recursos de Jugador 2 liberados");
     }
 
