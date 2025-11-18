@@ -50,7 +50,7 @@ static Texture2D mario;
 // Inicializar la ventana y texturas
 // ======================================================
 void InitGraphics() {
-    InitWindow(MAP_WIDTH * TILE_SIZE, MAP_HEIGHT * TILE_SIZE, "Mapa DonCEYkong Jr");
+    InitWindow(MAP_WIDTH * TILE_SIZE + SIDE_PANEL_WIDTH, MAP_HEIGHT * TILE_SIZE, "Mapa DonCEYkong Jr");
 
     // Tiles
     water    = LoadTexture("Sprites/water.png");
@@ -71,8 +71,7 @@ void InitGraphics() {
     CR_d     = LoadTexture("Sprites/Enemies/Red/kremling_red_d.png"); 
     CR_u     = LoadTexture("Sprites/Enemies/Red/kremling_red_u.png"); 
 
-    CB_d     = LoadTexture("Sprites/Enemies/Blue/kremling_blue_d.png"); 
-    CB_u     = LoadTexture("Sprites/Enemies/Blue/kremling_blue.png"); // <- poner imagen correcta
+    CB_d     = LoadTexture("Sprites/Enemies/Blue/kremling_blue_d.png");
 }
 
 
@@ -128,3 +127,31 @@ void CloseGraphics() {
     UnloadTexture(mario);
     CloseWindow();
 }
+
+// ======================================================
+// Dibuja panel donde se ven los puntos de jugador
+// ======================================================
+void DrawSidePanel(int points, const char *nombre, int spect) {
+    int panelX = MAP_WIDTH * TILE_SIZE;  // Donde empieza el panel
+
+    // Fondo del panel
+    DrawRectangle(panelX, 0, SIDE_PANEL_WIDTH, MAP_HEIGHT * TILE_SIZE, DARKGRAY);
+
+    // ====== Nombre del jugador ======
+    DrawText("Nombre Jugador", panelX + 20, 20, 22, RAYWHITE);
+    DrawText(nombre,            panelX + 20, 55, 28, YELLOW);
+
+    // ====== Puntos ======
+    DrawText("Puntos:", panelX + 20, 110, 22, RAYWHITE);
+
+    char buffer[16];
+    snprintf(buffer, sizeof(buffer), "%d", points);
+    DrawText(buffer, panelX + 20, 140, 28, YELLOW);
+
+    // ====== Espectadores ======
+    DrawText("Espectadores", panelX + 20, 200, 22, RAYWHITE);
+
+    snprintf(buffer, sizeof(buffer), "%d", spect);
+    DrawText(buffer, panelX + 20, 230, 28, YELLOW);
+}
+

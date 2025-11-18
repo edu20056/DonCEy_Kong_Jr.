@@ -6,6 +6,7 @@
 #define TILE_SIZE 20
 #define MAP_WIDTH  33
 #define MAP_HEIGHT 22
+#define SIDE_PANEL_WIDTH 240
 
 extern Texture2D jr_a;
 extern Texture2D jr_b;
@@ -24,6 +25,6 @@ void InitGraphics();
 void DrawMap();
 void CloseGraphics();
 void DrawSpriteAt(Texture2D tex, int x_pos, int y_pos, int dir);
-
+void DrawSidePanel(int points, const char *nombre, int spect);
 
 #endif

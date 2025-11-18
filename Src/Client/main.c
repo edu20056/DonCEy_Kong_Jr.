@@ -42,13 +42,15 @@ typedef struct {
     int climbing;
     int right;
     int points;
+    char PlayerName[20];
+    int espectadores;
 } Jugador;
 
 // Hilo de cliente
 thrd_t thread_client;
 
 // Instancia global del jugador
-Jugador jugador = {10, 10, 0, 0, 0};
+Jugador jugador = {10, 10, 0, 0, 0, "", 0};
 
 // Entidades dinámicas
 #define MAX_ENTIDADES 100
@@ -104,6 +106,9 @@ void procesarJSON(const char *json) {
         char *pts  = strstr(inicio, "\"puntos\"");
         char *climb = strstr(inicio, "\"climbing\"");
         char *right = strstr(inicio, "\"right\"");
+        char *name = strstr(jug, "\"name\"");
+        char *spect = strstr(inicio, "\"spect\""); 
+
 
         if (xpos && xpos < fin) jugador.x = extraer_num(xpos + 4) * 20;
         if (ypos && ypos < fin) jugador.y = extraer_num(ypos + 4) * 20;
@@ -128,6 +133,44 @@ void procesarJSON(const char *json) {
                 printf("[DEBUG] valor right = %c, jugador.right = %d\n", *val, jugador.right);
             }
         }
+
+        // ===== name =====
+        if (name && name < fin) {
+            char *colon = strchr(name, ':');
+            if (colon) {
+                char *val = colon + 1;
+
+                // Saltar espacios
+                while (*val == ' ' || *val == '\t') val++;
+
+                // Debe iniciar con comilla "
+                if (*val == '"') {
+                    val++; // saltar primera comilla
+
+                    int i = 0;
+                    while (*val && *val != '"' && i < sizeof(jugador.PlayerName) - 1) {
+                        jugador.PlayerName[i++] = *val++;
+                    }
+
+                    jugador.PlayerName[i] = '\0';
+
+                    printf("[DEBUG] PlayerName = %s\n", jugador.PlayerName);
+                } else {
+                    printf("[ERROR] El valor de name NO inicia con una comilla\n");
+                }
+            }
+        }
+
+        // ===== spectators =====
+        if (spect && spect < fin) {
+            // spect: <numero>
+            char *col = strchr(spect, ':');
+            if (col) {
+                jugador.espectadores = extraer_num(col + 1);
+                printf("[DEBUG] jugadores.espectadores = %d\n", jugador.espectadores);
+            }
+        }
+
     }
 
     // ===== ENTIDADES =====
@@ -345,6 +388,7 @@ int clientLoop(void *arg) {
                     case 'q': case 'Q':
                         printf("Saliendo...\n");
                         reset_input_mode();
+                        terminar_es = 1;
                         close(sock);
                         return 0;
                     default:
@@ -455,7 +499,7 @@ int main() {
         ClearBackground(BLACK);
 
         DrawMap();
-
+        DrawSidePanel(jugador.points, jugador.PlayerName, jugador.espectadores);
         // Dibujo del sprite
         if (jugador.climbing) {
             DrawSpriteAt(jr_cu, jugador.x, jugador.y, 3);
@@ -472,12 +516,7 @@ int main() {
             for (int i = 0; i < numEntidades; i++) {
                 char tipo[20] = "";
                 if (strcmp(entidades[i].type, "ROJO") == 0) { // Es rojo
-                    if (entidades[i].view) { // Esta viendo abajo ?
-                        DrawSpriteAt(CR_d, entidades[i].x, entidades[i].y, 1);
-                    }
-                    else {
-                        DrawSpriteAt(CR_u, entidades[i].x, entidades[i].y, 1);
-                    }
+                    DrawSpriteAt(CR_d, entidades[i].x, entidades[i].y, 1);
                 }
                 else { // Es azul
                     if (entidades[i].view) { // Esta viendo abajo ?

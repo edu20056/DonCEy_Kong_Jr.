@@ -410,6 +410,11 @@ public class Server {
         return jugadores.get(nombreJugador);
     }
 
+    public int getSpectadoresSize(String nombreJugador) {
+        List<Socket> spList = espectadoresPorJugador.get(nombreJugador);
+        return spList.size();
+    }
+
     // Obtener cantidad de jugadores
     public int getJugadoresSize(){
         int jugadoresConectados = this.jugadores.size();

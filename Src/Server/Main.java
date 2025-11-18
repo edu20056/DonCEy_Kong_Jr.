@@ -305,7 +305,7 @@ public class Main {
                 return;                    
             }
 
-            String json1 = adapter.generarJSON(player1, frutasJ1, cocodrilosJ1);
+            String json1 = adapter.generarJSON(player1, frutasJ1, cocodrilosJ1, servidor.J1_NAME, servidor.getSpectadoresSize(servidor.J1_NAME));
             servidor.enviarA(s1, json1);
             servidor.enviarAMisEspectadores(servidor.J1_NAME, json1);
         }
@@ -359,7 +359,7 @@ public class Main {
                 return;                    
             }
 
-            String json2 = adapter.generarJSON(player2, frutasJ2, cocodrilosJ2);
+            String json2 = adapter.generarJSON(player2, frutasJ2, cocodrilosJ2, servidor.J2_NAME, servidor.getSpectadoresSize(servidor.J2_NAME));
             servidor.enviarA(s2, json2);
             servidor.enviarAMisEspectadores(servidor.J2_NAME, json2);
         }
@@ -648,7 +648,7 @@ public class Main {
         
         Socket socket = servidor.getSocketJugador(nombreJugador);
         if (socket != null) {
-            String json = adapter.generarJSON(jugador, frutas, cocos);
+            String json = adapter.generarJSON(jugador, frutas, cocos, nombreJugador, servidor.getSpectadoresSize(nombreJugador));
             servidor.enviarA(socket, json);
             servidor.enviarAMisEspectadores(nombreJugador, json);
         }
