@@ -403,19 +403,19 @@ public class Main {
         // Solo procesar mensajes si el jugador está activo
         if (j1Activo && !servidor.mensajes_j1.isEmpty()) {
             String mensaje = servidor.mensajes_j1.remove(0);
-            procesarMovimientoJugador(mensaje, gameDataJ1, servidor.J1_NAME);
+            procesarMovimientoJugador(mensaje, gameDataJ1, servidor.J1_NAME, 1);
             enviarDatosJugador(servidor.J1_NAME, gameDataJ1);
         }
 
         if (j2Activo && !servidor.mensajes_j2.isEmpty()) {
             String mensaje = servidor.mensajes_j2.remove(0);
-            procesarMovimientoJugador(mensaje, gameDataJ2, servidor.J2_NAME);
+            procesarMovimientoJugador(mensaje, gameDataJ2, servidor.J2_NAME, 2);
             enviarDatosJugador(servidor.J2_NAME, gameDataJ2);
         }
     }
 
-    private static void procesarMovimientoJugador(String mensaje, GameData gameData, String nombreJugador) {
-        if (gameData == null || gameData.player == null || gameData.player.isDead() || 
+    private static void procesarMovimientoJugador(String mensaje, GameData gameData, String nombreJugador, int posJug) {
+        if (gameData == null || gameData.player == null || 
             gameData.collisionSystem == null || gameData.gravitySystem == null) return;
         
         try {
@@ -494,7 +494,18 @@ public class Main {
                         accion = "no puede moverse izquierda (obstáculo)";
                     }
                     break;
-                    
+                case 5:
+                    if (posJug == 1) { // jugador 1 intenta reiniciar
+                        if (gameDataJ1.player.isDead()) { // el jugador esta muerto, se genera reinicio
+                            gameDataJ1.player.respawn(new Coords(0, 0));
+                        }
+                    }
+                    else { // jugador 2 intenta reinicar 
+                        if (gameDataJ2.player.isDead()) { // el jugador esta muerto, se genera reinicio
+                            gameDataJ2.player.respawn(new Coords(8, 3));
+                        }
+                    }
+                    break;
                 default:
                     accion = "acción desconocida: " + movimiento;
             }
