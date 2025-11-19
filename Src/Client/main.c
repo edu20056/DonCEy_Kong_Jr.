@@ -42,15 +42,16 @@ typedef struct {
     int climbing;
     int right;
     int points;
-    char PlayerName[20];
+    char PlayerName[20]; 
     int espectadores;
+    int dead;
 } Jugador;
 
 // Hilo de cliente
 thrd_t thread_client;
 
 // Instancia global del jugador
-Jugador jugador = {10, 10, 0, 0, 0, "", 0};
+Jugador jugador = {10, 10, 0, 0, 0, "", 0, 0};
 
 // Entidades dinámicas
 #define MAX_ENTIDADES 100
@@ -108,6 +109,7 @@ void procesarJSON(const char *json) {
         char *right = strstr(inicio, "\"right\"");
         char *name = strstr(jug, "\"name\"");
         char *spect = strstr(inicio, "\"spect\""); 
+        char *dead = strstr(inicio, "\"dead\""); 
 
 
         if (xpos && xpos < fin) jugador.x = extraer_num(xpos + 4) * 20;
@@ -119,7 +121,16 @@ void procesarJSON(const char *json) {
                 char *val = colon + 1;
                 while (*val == ' ' || *val == '\t') val++;
                 jugador.climbing = (*val == 't') ? 1 : 0;
-                printf("[DEBUG] valor climbing = %c, jugador.climbing = %d\n", *val, jugador.climbing);
+            }
+        }
+
+        if (dead != NULL) {
+            char *colon = strchr(dead, ':');
+            if (colon != NULL) {
+                char *val = colon + 1;
+                while (*val == ' ' || *val == '\t') val++;
+                jugador.dead = (*val == 't') ? 1 : 0;
+                printf("[DEBUG] valor dead = %c, jugador.dead = %d\n", *val, jugador.dead);
             }
         }
         if (right != NULL) {
@@ -130,7 +141,6 @@ void procesarJSON(const char *json) {
                 char *val = colon + 1;
                 while (*val == ' ' || *val == '\t') val++;
                 jugador.right = (*val == 't') ? 1 : 0;
-                printf("[DEBUG] valor right = %c, jugador.right = %d\n", *val, jugador.right);
             }
         }
 
@@ -153,10 +163,6 @@ void procesarJSON(const char *json) {
                     }
 
                     jugador.PlayerName[i] = '\0';
-
-                    printf("[DEBUG] PlayerName = %s\n", jugador.PlayerName);
-                } else {
-                    printf("[ERROR] El valor de name NO inicia con una comilla\n");
                 }
             }
         }
@@ -385,6 +391,7 @@ int clientLoop(void *arg) {
                     case 'd': case 'D': strcpy(msg, "2"); break;
                     case 's': case 'S': strcpy(msg, "3"); break;
                     case 'a': case 'A': strcpy(msg, "4"); break;
+                    case 'r': case 'R': strcpy(msg, "5"); break; // Reinicio
                     case 'q': case 'Q':
                         printf("Saliendo...\n");
                         reset_input_mode();
@@ -498,54 +505,60 @@ int main() {
         BeginDrawing();
         ClearBackground(BLACK);
 
-        DrawMap();
-        DrawSidePanel(jugador.points, jugador.PlayerName, jugador.espectadores);
-        // Dibujo del sprite
-        if (jugador.climbing) {
-            DrawSpriteAt(jr_cu, jugador.x, jugador.y, 3);
-        }
-        else {
-            if (jugador.right) {
-                DrawSpriteAt(jr_b, jugador.x, jugador.y, 3);
-            } else {
-                DrawSpriteAt(jr_a, jugador.x, jugador.y, 3);
+
+        if (!jugador.dead){
+            DrawMap();
+            DrawSidePanel(jugador.points, jugador.PlayerName, jugador.espectadores);
+            // Dibujo del sprite
+            if (jugador.climbing) {
+                DrawSpriteAt(jr_cu, jugador.x, jugador.y, 3);
             }
-        }
-
-        if (numEntidades > 0) {
-            for (int i = 0; i < numEntidades; i++) {
-                char tipo[20] = "";
-                if (strcmp(entidades[i].type, "ROJO") == 0) { // Es rojo
-                    if (entidades[i].view){
-                        DrawSpriteAt(CR_d, entidades[i].x, entidades[i].y, 1);
-                    }
-                    else {
-                        DrawSpriteAt(CR_u, entidades[i].x, entidades[i].y, 1);
-                    }
-                    
-                }
-                else { // Es azul
-                    DrawSpriteAt(CB_d, entidades[i].x, entidades[i].y, 1);
-
+            else {
+                if (jugador.right) {
+                    DrawSpriteAt(jr_b, jugador.x, jugador.y, 3);
+                } else {
+                    DrawSpriteAt(jr_a, jugador.x, jugador.y, 3);
                 }
             }
+
+            if (numEntidades > 0) {
+                for (int i = 0; i < numEntidades; i++) {
+                    char tipo[20] = "";
+                    if (strcmp(entidades[i].type, "ROJO") == 0) { // Es rojo
+                        if (entidades[i].view){
+                            DrawSpriteAt(CR_d, entidades[i].x, entidades[i].y, 1);
+                        }
+                        else {
+                            DrawSpriteAt(CR_u, entidades[i].x, entidades[i].y, 1);
+                        }
+                        
+                    }
+                    else { // Es azul
+                        DrawSpriteAt(CB_d, entidades[i].x, entidades[i].y, 1);
+
+                    }
+                }
+            }
+
+            if (numFrutas > 0) {
+                for (int i = 0; i < numFrutas; i++) {
+                    if (strcmp(frutas[i].type, "BANANA") == 0) {
+                        DrawSpriteAt(f_ban, frutas[i].x, frutas[i].y, 3);
+                    }
+                    else if (strcmp(frutas[i].type, "STRAWBERRY") == 0)
+                    {
+                        DrawSpriteAt(f_str, frutas[i].x, frutas[i].y, 3);
+                    }
+                    else { // Naranja
+                        DrawSpriteAt(f_or, frutas[i].x, frutas[i].y, 3);   
+                    }
+                }            
+            }
+        }
+        else { // Jugador murió
+            DrawLose();
         }
 
-        if (numFrutas > 0) {
-            for (int i = 0; i < numFrutas; i++) {
-                if (strcmp(frutas[i].type, "BANANA") == 0) {
-                    DrawSpriteAt(f_ban, frutas[i].x, frutas[i].y, 3);
-                }
-                else if (strcmp(frutas[i].type, "STRAWBERRY") == 0)
-                {
-                    DrawSpriteAt(f_str, frutas[i].x, frutas[i].y, 3);
-                }
-                else { // Naranja
-                    DrawSpriteAt(f_or, frutas[i].x, frutas[i].y, 3);   
-                }
-            }            
-        }
-        // Aqui faltaría pegar la cantidad de puntos actual del jugador
 
         EndDrawing();
     }

@@ -21,7 +21,8 @@ public class AdapterJSON {
         sb.append("\"climbing\": ").append(player.isOnVine()).append(", "); 
         sb.append("\"right\": ").append(player.isFacingRight()).append(", "); 
         sb.append("\"name\": \"").append(playerName.replace("\"","")).append("\", ");
-        sb.append("\"spect\": ").append(Integer.toString(espectadores)); 
+        sb.append("\"spect\": ").append(Integer.toString(espectadores)).append("\", ");
+        sb.append("\"dead\": ").append(player.isDead()); 
         sb.append("},");
 
         // Entidades {tipo,x,y,abajo?}

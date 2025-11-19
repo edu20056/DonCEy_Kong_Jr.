@@ -155,3 +155,36 @@ void DrawSidePanel(int points, const char *nombre, int spect) {
     DrawText(buffer, panelX + 20, 230, 28, YELLOW);
 }
 
+// ======================================================
+// Dibuja pantalla de pérdida
+// ======================================================
+void DrawLose() {
+    const int boxWidth  = 600;
+    const int boxHeight = 200;
+
+    int centerX = (MAP_WIDTH * TILE_SIZE) / 2;
+    int centerY = (MAP_HEIGHT * TILE_SIZE) / 2;
+
+    int boxX = centerX - boxWidth / 2;
+    int boxY = centerY - boxHeight / 2;
+
+    // Fondo del recuadro
+    DrawRectangle(boxX, boxY, boxWidth, boxHeight, Fade(BLACK, 0.8f));
+
+    // Borde
+    DrawRectangleLines(boxX, boxY, boxWidth, boxHeight, RAYWHITE);
+
+    // Texto
+    DrawText("El jugador ha muerto", 
+             boxX + 40, 
+             boxY + 50, 
+             30, 
+             RAYWHITE);
+
+    DrawText("Presione Q para salir o R para reiniciar", 
+             boxX + 40, 
+             boxY + 110, 
+             20, 
+             RAYWHITE);
+}
+
