@@ -516,15 +516,17 @@ int main() {
             for (int i = 0; i < numEntidades; i++) {
                 char tipo[20] = "";
                 if (strcmp(entidades[i].type, "ROJO") == 0) { // Es rojo
-                    DrawSpriteAt(CR_d, entidades[i].x, entidades[i].y, 1);
-                }
-                else { // Es azul
-                    if (entidades[i].view) { // Esta viendo abajo ?
-                        DrawSpriteAt(CB_d, entidades[i].x, entidades[i].y, 1);
+                    if (entidades[i].view){
+                        DrawSpriteAt(CR_d, entidades[i].x, entidades[i].y, 1);
                     }
                     else {
-                        DrawSpriteAt(CB_u, entidades[i].x, entidades[i].y, 1);
+                        DrawSpriteAt(CR_u, entidades[i].x, entidades[i].y, 1);
                     }
+                    
+                }
+                else { // Es azul
+                    DrawSpriteAt(CB_d, entidades[i].x, entidades[i].y, 1);
+
                 }
             }
         }
