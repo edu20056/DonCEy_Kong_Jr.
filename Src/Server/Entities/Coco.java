@@ -58,13 +58,24 @@ public abstract class Coco extends Entity {
     public void setMovementSpeed(int movementSpeed) { this.movementSpeed = movementSpeed; }
 
     /**
-     * Dermines wheter the coco object shoud
+     * Determines whether the coco object should 
      * move to the next position.
      */
 
     protected boolean shouldMove() {
         movementCounter++;
-        if (movementCounter >= movementSpeed) {
+        
+        int framesBetweenMoves;
+        switch (movementSpeed) {
+            case 1: framesBetweenMoves = 7; break;
+            case 2: framesBetweenMoves = 5; break;
+            case 3: framesBetweenMoves = 3; break;
+            case 4: framesBetweenMoves = 2; break;
+            case 5: framesBetweenMoves = 1; break;
+            default: framesBetweenMoves = 0; break;
+        }
+        
+        if (movementCounter >= framesBetweenMoves) {
             movementCounter = 0;
             return true;
         }

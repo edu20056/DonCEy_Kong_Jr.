@@ -20,7 +20,21 @@ public class CollisionSystem {
     public CollisionSystem(World world) {
         this.world = world;
     }
-    
+
+    /**
+     * Check win condition requirements.
+     * Goal is reach.
+     *
+     * @param player extract players coords to check for collision
+     * @return true if collision with goal, false otherwise.
+     */
+     
+     public boolean checkWinCollision(Player player) {
+        Coords playerPos = player.getPosition();
+
+        return world.isWithinBounds(playerPos) && world.getTile(playerPos).isGoal();
+    }
+
     /**
      * Checks if a position is valid for movement.
      */
@@ -69,7 +83,7 @@ public class CollisionSystem {
         // Update environmental states
         player.setOnVine(isOnVine(playerPos));
         player.setOnGround(isOnGround(playerPos));
-        
+
         // Check for fatal collisions (stop if player dies)
         if (checkFatalCollisions(player, playerPos, cocodrilos)) {
             return;

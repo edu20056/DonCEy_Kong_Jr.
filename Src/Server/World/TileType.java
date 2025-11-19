@@ -40,8 +40,16 @@ public enum TileType {
     public boolean isSolid() { return isSolid; }
     public boolean isDeadly() { return isDeadly; }
     public boolean isClimbable() { return isClimbable; }
-    
-    
+
+    /**
+     * Determines wheter the currnet tile is
+     * the game goal.
+     *
+     * @return true if the tile is the goal, false otherwise
+     */
+     
+    public boolean isGoal() { return this == GOAL; }
+
     /**
      * Converts a character to its corresponding TileType.
      *
