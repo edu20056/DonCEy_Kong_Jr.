@@ -94,9 +94,6 @@ public class Main {
                         case 2:
                             agregarFruta();
                             break;
-                        case 3:
-                            mostrarEstadoActual();
-                            break;
                         case 4:
                             menuActivo = false;
                             System.out.println("Menú desactivado.");
@@ -257,20 +254,6 @@ public class Main {
         return jugador;
     }
 
-    private static void mostrarEstadoActual() {
-        System.out.println("\n=== ESTADO ACTUAL ===");
-        
-        System.out.println("JUGADOR 1: " + (j1Activo ? "ACTIVO" : "INACTIVO"));
-        if (j1Activo && gameDataJ1 != null) {
-            System.out.println(gameDataJ1.getGameStats());
-        }
-        
-        System.out.println("JUGADOR 2: " + (j2Activo ? "ACTIVO" : "INACTIVO"));
-        if (j2Activo && gameDataJ2 != null) {
-            System.out.println(gameDataJ2.getGameStats());
-        }
-    }
-
     // ========== GESTIÓN DE JUGADORES ==========
 
     private static void gestionarJugadores() {
@@ -301,21 +284,13 @@ public class Main {
             if (servidor.getJugadoresSize() == 1 && !j2Activo || 
                 servidor.getJugadoresSize() == 2 && j2Activo) {
                 try {
-                    System.out.println("🔄 Inicializando mundo para Jugador 1...");
-                    
-                    // Crear GameData para J1
-                    gameDataJ1 = new GameData("J1", SPAWN_J1);
+                    gameDataJ1 = new GameData(SPAWN_J1);
                     gameDataJ1.initializeWorld(LEVEL_PATH);
                     
                     j1Activo = true;
                     servidor.J1_ING = true;
-                    
-                    System.out.println("✅ Jugador 1 instanciado con GameData");
-                    System.out.println("   - " + gameDataJ1.getGameStats());
-                    
 
                 } catch (Exception e) {
-                    System.err.println("❌ Error al crear GameData para J1: " + e.getMessage());
                     limpiarJugador1();
                 }
             }
@@ -343,20 +318,13 @@ public class Main {
         }
         if (!j2Activo && servidor.getJugadoresSize() >= 2) {
             try {
-                System.out.println("🔄 Inicializando mundo para Jugador 2...");
-                
-                // Crear GameData para J2
-                gameDataJ2 = new GameData("J2", SPAWN_J2);
+                gameDataJ2 = new GameData(SPAWN_J2);
                 gameDataJ2.initializeWorld(LEVEL_PATH);
                 
                 j2Activo = true;
                 servidor.J2_ING = true;
                 
-                System.out.println("✅ Jugador 2 instanciado con GameData");
-                System.out.println("   - " + gameDataJ2.getGameStats());
-                
             } catch (Exception e) {
-                System.err.println("❌ Error al crear GameData para J2: " + e.getMessage());
                 limpiarJugador2();
             }
         }

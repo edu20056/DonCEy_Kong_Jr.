@@ -26,19 +26,16 @@ public class GameData {
     public List<Coco> crocodiles;
     public List<Fruit> fruits;
     public boolean isActive;
-    public String playerName;
     public Coords spawnPoint;
     public int lvl;
     
     /**
      * Constructs a GameData instance for a player.
      * 
-     * @param name The player name (e.g., "J1", "J2")
      * @param spawn The spawn coordinates for the player
      */
 
-    public GameData(String name, Coords spawn) {
-        this.playerName = name;
+    public GameData(Coords spawn) {
         this.spawnPoint = spawn;
         this.player = new Player(spawn.getX(), spawn.getY());
         this.crocodiles = new ArrayList<>();
@@ -67,7 +64,6 @@ public class GameData {
             initializeLevelEntities();
             
         } catch (Exception e) {
-            System.err.println("❌ Error initializing world for " + playerName + ": " + e.getMessage());
             this.isActive = false;
         }
     }
@@ -76,14 +72,9 @@ public class GameData {
         crocodiles.clear();
         fruits.clear();
         
-        if (playerName.equals("J1")) {
-            crocodiles.add(new RedCoco(11, 6, lvl));
-            crocodiles.add(new BlueCoco(0, 6, lvl));
-        } else {
-            crocodiles.add(new RedCoco(11, 8, lvl));
-            crocodiles.add(new BlueCoco(0, 3, lvl));
-        }
-        
+        crocodiles.add(new RedCoco(11, 6, lvl));
+        crocodiles.add(new BlueCoco(0, 6, lvl));
+    
         fruits.add(new Fruit(3, 4, "BANANA"));
         fruits.add(new Fruit(7, 12, "STRAWBERRY"));
         fruits.add(new Fruit(6, 6, "ORANGE"));
@@ -175,28 +166,11 @@ public class GameData {
     }
     
     /**
-     * Gets game statistics for display.
-     * Used for status reporting.
-     * 
-     * @return Formatted game statistics string
-     */
-
-    public String getGameStats() {
-        if (!isActive || player == null) {
-            return playerName + ": INACTIVE";
-        }
-
-        return String.format("%s: Level %d - Pos(%d,%d) - Points: %d - Crocs: %d - Fruits: %d",
-            playerName, lvl, 
-            player.getPosition().getX(), player.getPosition().getY(),
-            player.getPoints(), crocodiles.size(), fruits.size());
-    }        
-    
-    /**
      * Adds a crocodile to the game (for admin menu functionality).
      * 
      * @param crocodile The crocodile to add
      */
+
     public void addCrocodile(Coco crocodile) {
         if (isActive && crocodile != null) {
             crocodiles.add(crocodile);
