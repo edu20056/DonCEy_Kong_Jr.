@@ -43,7 +43,12 @@ public class GameData {
         this.isActive = false;
         this.lvl = 1;
     }
-    
+
+
+    // --- GETTERS AND SETTERS --- //
+
+    public int getLvl() { return lvl; }
+
     /**
      * Initializes the player world and systems.
      * Equivalent to the initialization code in Main.java for each player.
@@ -95,17 +100,17 @@ public class GameData {
      * Advances to the next level, increasing difficulty.
      * Called when player reaches the goal.
      */
-    
-    public void newLevel() {
-        
-        // Increase level
-        lvl++;
-        
+   
+    public void newLevel(int levelNumber) {
+      
+        lvl = levelNumber;
+
+        // Increase difficulty
+        increaseCrocodileSpeed();
+
         // Reset player position
         player.respawn(spawnPoint);
         
-        // Increase difficulty
-        increaseCrocodileSpeed();
         
         // Initialize new level entities
         initializeLevelEntities();
@@ -137,7 +142,8 @@ public class GameData {
             
             // Check if player reached the goal
             if (collisionSystem.checkWinCollision(player)) {
-                newLevel();
+                player.incLives();
+                newLevel(++lvl);
                 return;
             }
 
@@ -146,6 +152,13 @@ public class GameData {
             
             // Update collision state 
             collisionSystem.updatePlayerState(player, crocodiles, fruits);
+       
+            // Check if player lives after deadly collision.
+            if (player.isDead() && player.getLives() > 0) {
+                player.decLives();
+                newLevel(lvl);
+                return;
+            }
         }
     }
     

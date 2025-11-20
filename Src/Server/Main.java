@@ -16,28 +16,26 @@ import Physics.GravitySystem;
 import Utils.Coords;
 import Entities.Fruit;
 import Game.GameData;
+import Game.GameAdmin;
 
 public class Main {
     // Constantes
-    private static final Coords SPAWN_J1 = new Coords(0, 0);
-    private static final Coords SPAWN_J2 = new Coords(8, 3);
-    private static final int GAME_LOOP_DELAY = 175;
+    private static final Coords SPAWN_J1 = new Coords(0, 19);
+    private static final Coords SPAWN_J2 = new Coords(0, 19);
+    private static final int GAME_LOOP_DELAY = 125;
     private static final String LEVEL_PATH = "World/Levels/lvl1.txt";
     
-    // GameData containers para cada jugador (reemplaza las variables individuales)
+    // GameData containers para cada jugador
     private static GameData gameDataJ1 = null;
     private static GameData gameDataJ2 = null;
     
     private static Server servidor;
     private static AdapterJSON adapter;
+    private static GameAdmin gameAdmin;
     
-    // Control de estado (se mantienen para compatibilidad)
+    // Control de estado
     private static boolean j1Activo = false;
     private static boolean j2Activo = false;
-
-    // Scanner para entrada de consola
-    private static Scanner scanner = new Scanner(System.in);
-    private static boolean menuActivo = true;
 
     // ========== INICIALIZACIÓN ==========
 
@@ -45,18 +43,17 @@ public class Main {
         
         adapter = new AdapterJSON();
         servidor = new Server();
+        
+        // Inicializar GameAdmin (NO iniciar menú todavía)
+        gameAdmin = new GameAdmin();
+        
         servidor.iniciar();
         
         System.out.println("=== SERVIDOR INICIADO ===");
         System.out.println("Esperando conexiones de clientes...");
         System.out.println("Los mundos se crearán cuando los jugadores se conecten");
         
-        // Iniciar hilo del menú interactivo
-        Thread menuThread = new Thread(() -> {
-            mostrarMenuInteractivo();
-        });
-        menuThread.setDaemon(true);
-        menuThread.start();
+        // NO iniciar el menú aquí - se iniciará automáticamente cuando se conecten jugadores
         
         Thread gameThread = new Thread(() -> {
             while (true) {
@@ -75,191 +72,26 @@ public class Main {
         gameThread.start();
     }
 
-    // ========== MENÚ INTERACTIVO ==========
-
-    private static void mostrarMenuInteractivo() {
-        while (menuActivo) {
-            try {
-                Thread.sleep(2000); // Esperar 2 segundos entre menús
-                mostrarOpcionesMenu();
-                
-                if (System.in.available() > 0) {
-                    int opcion = scanner.nextInt();
-                    scanner.nextLine(); // Limpiar buffer
-                    
-                    switch (opcion) {
-                        case 1:
-                            agregarCocodrilo();
-                            break;
-                        case 2:
-                            agregarFruta();
-                            break;
-                        case 4:
-                            menuActivo = false;
-                            System.out.println("Menú desactivado.");
-                            break;
-                        default:
-                            System.out.println("Opción inválida.");
-                    }
-                }
-            } catch (Exception e) {
-                // Ignorar excepciones de entrada/salida
-            }
-        }
-    }
-
-    private static void mostrarOpcionesMenu() {
-        System.out.println("\n=== MENÚ INTERACTIVO ===");
-        System.out.println("1. Agregar Cocodrilo");
-        System.out.println("2. Agregar Fruta");
-        System.out.println("3. Mostrar Estado Actual");
-        System.out.println("4. Salir del Menú");
-        System.out.print("Seleccione una opción: ");
-    }
-
-    private static void agregarCocodrilo() {
-        try {
-            System.out.println("\n--- AGREGAR COCODRILO ---");
-            
-            // Seleccionar jugador
-            int jugador = seleccionarJugador();
-            if (jugador == 0) return;
-            
-            // Seleccionar tipo de cocodrilo
-            System.out.println("Tipos de cocodrilo:");
-            System.out.println("1. Rojo (lento)");
-            System.out.println("2. Azul (rápido)");
-            System.out.print("Seleccione tipo: ");
-            int tipo = scanner.nextInt();
-            
-            if (tipo < 1 || tipo > 2) {
-                System.out.println("Tipo inválido.");
-                return;
-            }
-            
-            // Ingresar posición
-            System.out.print("Posición X: ");
-            int x = scanner.nextInt();
-            System.out.print("Posición Y: ");
-            int y = scanner.nextInt();
-            
-            // Ingresar velocidad
-            System.out.print("Velocidad (1=lento, 2=rápido): ");
-            int velocidad = scanner.nextInt();
-            
-            // Crear cocodrilo
-            Coco nuevoCoco;
-            if (tipo == 1) {
-                nuevoCoco = new RedCoco(x, y, velocidad);
-            } else {
-                nuevoCoco = new BlueCoco(x, y, velocidad);
-            }
-            
-            // Agregar al jugador correspondiente usando GameData
-            if (jugador == 1 && j1Activo && gameDataJ1 != null) {
-                gameDataJ1.addCrocodile(nuevoCoco);
-                System.out.println("✅ Cocodrilo agregado al Jugador 1 en (" + x + "," + y + ")");
-            } else if (jugador == 2 && j2Activo && gameDataJ2 != null) {
-                gameDataJ2.addCrocodile(nuevoCoco);
-                System.out.println("✅ Cocodrilo agregado al Jugador 2 en (" + x + "," + y + ")");
-            } else {
-                System.out.println("❌ No se pudo agregar el cocodrilo - Jugador no activo");
-            }
-            
-        } catch (Exception e) {
-            System.out.println("❌ Error al agregar cocodrilo: " + e.getMessage());
-            scanner.nextLine(); // Limpiar buffer en caso de error
-        }
-    }
-
-    private static void agregarFruta() {
-        try {
-            System.out.println("\n--- AGREGAR FRUTA ---");
-            
-            // Seleccionar jugador
-            int jugador = seleccionarJugador();
-            if (jugador == 0) return;
-            
-            // Seleccionar tipo de fruta
-            System.out.println("Tipos de fruta:");
-            System.out.println("1. BANANA");
-            System.out.println("2. STRAWBERRY");
-            System.out.println("3. ORANGE");
-            System.out.print("Seleccione tipo: ");
-            int tipo = scanner.nextInt();
-            
-            String tipoFruta;
-            switch (tipo) {
-                case 1: tipoFruta = "BANANA"; break;
-                case 2: tipoFruta = "STRAWBERRY"; break;
-                case 3: tipoFruta = "ORANGE"; break;
-                default:
-                    System.out.println("Tipo inválido.");
-                    return;
-            }
-            
-            // Ingresar posición
-            System.out.print("Posición X: ");
-            int x = scanner.nextInt();
-            System.out.print("Posición Y: ");
-            int y = scanner.nextInt();
-            
-            // Crear fruta
-            Fruit nuevaFruta = new Fruit(x, y, tipoFruta);
-            
-            // Agregar al jugador correspondiente usando GameData
-            if (jugador == 1 && j1Activo && gameDataJ1 != null) {
-                gameDataJ1.addFruit(nuevaFruta);
-                System.out.println("✅ Fruta " + tipoFruta + " agregada al Jugador 1 en (" + x + "," + y + ")");
-            } else if (jugador == 2 && j2Activo && gameDataJ2 != null) {
-                gameDataJ2.addFruit(nuevaFruta);
-                System.out.println("✅ Fruta " + tipoFruta + " agregada al Jugador 2 en (" + x + "," + y + ")");
-            } else {
-                System.out.println("❌ No se pudo agregar la fruta - Jugador no activo");
-            }
-            
-        } catch (Exception e) {
-            System.out.println("❌ Error al agregar fruta: " + e.getMessage());
-            scanner.nextLine(); // Limpiar buffer en caso de error
-        }
-    }
-
-    private static int seleccionarJugador() {
-        System.out.println("Seleccionar jugador:");
-        System.out.println("1. Jugador 1" + (j1Activo ? " (ACTIVO)" : " (INACTIVO)"));
-        System.out.println("2. Jugador 2" + (j2Activo ? " (ACTIVO)" : " (INACTIVO)"));
-        System.out.print("Seleccione jugador (0 para cancelar): ");
-        
-        int jugador = scanner.nextInt();
-        if (jugador == 0) {
-            System.out.println("Operación cancelada.");
-            return 0;
-        }
-        
-        if (jugador == 1 && !j1Activo) {
-            System.out.println("❌ Jugador 1 no está activo.");
-            return 0;
-        }
-        
-        if (jugador == 2 && !j2Activo) {
-            System.out.println("❌ Jugador 2 no está activo.");
-            return 0;
-        }
-        
-        if (jugador < 1 || jugador > 2) {
-            System.out.println("❌ Jugador inválido.");
-            return 0;
-        }
-        
-        return jugador;
-    }
-
     // ========== GESTIÓN DE JUGADORES ==========
 
     private static void gestionarJugadores() {
+        boolean estadoAnteriorJ1 = j1Activo;
+        boolean estadoAnteriorJ2 = j2Activo;
+        
         gestionarConexionJugador1();
         gestionarConexionJugador2();
         limpiarJugadoresDesconectados();
+        
+        // Verificar si hubo cambios de estado
+        boolean huboCambios = (estadoAnteriorJ1 != j1Activo) || (estadoAnteriorJ2 != j2Activo);
+        
+        if (huboCambios) {
+            System.out.println("🔄 Cambio de estado - J1: " + estadoAnteriorJ1 + "→" + j1Activo + 
+                             ", J2: " + estadoAnteriorJ2 + "→" + j2Activo);
+        }
+        
+        // Actualizar GameAdmin con los estados actuales (SIEMPRE)
+        gameAdmin.updateGameData(gameDataJ1, gameDataJ2, j1Activo, j2Activo);
     }
 
     private static void gestionarConexionJugador1() {
@@ -281,16 +113,22 @@ public class Main {
             servidor.enviarAMisEspectadores(servidor.J1_NAME, json1);
         }
         else {
-            if (servidor.getJugadoresSize() == 1 && !j2Activo || 
+            if (servidor.getJugadoresSize() >= 1 && !j2Activo || 
                 servidor.getJugadoresSize() == 2 && j2Activo) {
                 try {
+                    System.out.println("🔄 Inicializando mundo para Jugador 1...");
+                    
+                    // Crear GameData para J1
                     gameDataJ1 = new GameData(SPAWN_J1);
                     gameDataJ1.initializeWorld(LEVEL_PATH);
                     
                     j1Activo = true;
                     servidor.J1_ING = true;
+                    
+                    System.out.println("✅ Jugador 1 CONECTADO y listo");
 
                 } catch (Exception e) {
+                    System.err.println("❌ Error al crear GameData para J1: " + e.getMessage());
                     limpiarJugador1();
                 }
             }
@@ -318,13 +156,19 @@ public class Main {
         }
         if (!j2Activo && servidor.getJugadoresSize() >= 2) {
             try {
+                System.out.println("🔄 Inicializando mundo para Jugador 2...");
+                
+                // Crear GameData para J2
                 gameDataJ2 = new GameData(SPAWN_J2);
                 gameDataJ2.initializeWorld(LEVEL_PATH);
                 
                 j2Activo = true;
                 servidor.J2_ING = true;
                 
+                System.out.println("✅ Jugador 2 CONECTADO y listo");
+                
             } catch (Exception e) {
+                System.err.println("❌ Error al crear GameData para J2: " + e.getMessage());
                 limpiarJugador2();
             }
         }
@@ -334,14 +178,14 @@ public class Main {
         // Verificar si J1 estaba activo pero ahora está desconectado
         if (servidor.J1_ING && servidor.J1_desc) {
             servidor.J1_desc = false;
-            System.out.println("🔌 Jugador 1 desconectado, liberando recursos...");
+            System.out.println("🔌 Jugador 1 DESCONECTADO, liberando recursos...");
             limpiarJugador1();
         }
         
         // Verificar si J2 estaba activo pero ahora está desconectado
         if (j2Activo && servidor.J2_desc) {
             servidor.J2_desc = false;
-            System.out.println("🔌 Jugador 2 desconectado, liberando recursos...");
+            System.out.println("🔌 Jugador 2 DESCONECTADO, liberando recursos...");
             limpiarJugador2();
         }
     }
@@ -376,7 +220,6 @@ public class Main {
     }
 
     private static void actualizarCocodrilos() {
-        // Usar los métodos de GameData para actualizar cocodrilos
         if (j1Activo && gameDataJ1 != null) {
             gameDataJ1.updateCrocodiles();
         }
@@ -387,7 +230,6 @@ public class Main {
     }
 
     private static void actualizarFisicaJugadores() {
-        // Usar los métodos de GameData para actualizar física
         if (j1Activo && gameDataJ1 != null) {
             gameDataJ1.updatePhysics();
         }
@@ -400,7 +242,6 @@ public class Main {
     // ========== PROCESAMIENTO DE MENSAJES ==========
 
     private static void procesarMensajesEntrantes() {
-        // Solo procesar mensajes si el jugador está activo
         if (j1Activo && !servidor.mensajes_j1.isEmpty()) {
             String mensaje = servidor.mensajes_j1.remove(0);
             procesarMovimientoJugador(mensaje, gameDataJ1, servidor.J1_NAME, 1);
@@ -426,7 +267,6 @@ public class Main {
 
             case 1: // ARRIBA/SALTO
                 if (gameData.player.isOnVine()) {
-                    // Movimiento en enredadera - movimiento gradual de 1 bloque
                     Coords newPos = gameData.player.calculateMoveUp();
                     if (gameData.collisionSystem.canMoveTo(newPos)) {
                         gameData.player.applyMovement(newPos, gameData.player.isFacingRight());
@@ -435,11 +275,9 @@ public class Main {
                         accion = "no puede subir (obstáculo)";
                     }
                 } else if (gameData.player.isOnGround()) {
-                    // Salto normal desde el suelo
                     Coords[] jumpPositions = gameData.player.calculateJumpPositions();
                     Coords jumpTarget = null;
                     
-                    // Buscar la máxima altura alcanzable
                     int maxAltura = 0;
                     for (int i = 0; i < jumpPositions.length; i++) {
                         if (gameData.collisionSystem.canMoveTo(jumpPositions[i])) {
@@ -495,14 +333,14 @@ public class Main {
                     }
                     break;
                 case 5:
-                    if (posJug == 1) { // jugador 1 intenta reiniciar
-                        if (gameDataJ1.player.isDead()) { // el jugador esta muerto, se genera reinicio
-                            gameDataJ1.player.respawn(new Coords(0, 0));
+                    if (posJug == 1) {
+                        if (gameDataJ1.player.isDead()) {
+                            gameDataJ1.newLevel(1);
                         }
                     }
-                    else { // jugador 2 intenta reinicar 
-                        if (gameDataJ2.player.isDead()) { // el jugador esta muerto, se genera reinicio
-                            gameDataJ2.player.respawn(new Coords(8, 3));
+                    else {
+                        if (gameDataJ2.player.isDead()) {
+                            gameDataJ2.newLevel(1);
                         }
                     }
                     break;
@@ -510,10 +348,8 @@ public class Main {
                     accion = "acción desconocida: " + movimiento;
             }
             
-            // Actualizar estado del jugador después del movimiento usando GameData
             gameData.collisionSystem.updatePlayerState(gameData.player, gameData.crocodiles, gameData.fruits);
             
-            // Enviar confirmación
             String estadoActual = obtenerEstadoJugador(gameData.player, nombreJugador);
             String mensajeCompleto = nombreJugador + " " + accion + " | " + estadoActual;
             
@@ -528,14 +364,6 @@ public class Main {
             System.err.println("Error: mensaje inválido: " + mensaje);
         }
     }
-
-    // ========== RENDERIZADO ==========
-    private static void limpiarConsola() {
-        System.out.print("\033[H\033[2J");
-        System.out.flush();
-    }
-
-    // ========== COMUNICACIÓN ==========
 
     private static void enviarDatosJugador(String nombreJugador, GameData gameData) {
         if (gameData == null || gameData.player == null) return;
@@ -554,18 +382,6 @@ public class Main {
         }
     }
 
-    public static List<int[]> generarListaRandom(int cantidad) {
-        Random r = new Random();
-        List<int[]> lista = new ArrayList<>();
-
-        for (int i = 0; i < cantidad; i++) {
-            int x = r.nextInt(300);
-            int y = r.nextInt(300);
-            lista.add(new int[]{x, y});
-        }
-        return lista;
-    }
-
     private static String obtenerEstadoJugador(Player jugador, String nombre) {
         if (jugador == null) return nombre + ": NO INICIALIZADO";
         
@@ -578,5 +394,14 @@ public class Main {
             "",
             jugador.isOnVine() ? "ENREDADERA " : "",
             jugador.isDead() ? "MUERTO " : "");
+    }
+    
+    /**
+     * Clean up resources
+     */
+    public static void cleanup() {
+        if (gameAdmin != null) {
+            gameAdmin.cleanup();
+        }
     }
 }

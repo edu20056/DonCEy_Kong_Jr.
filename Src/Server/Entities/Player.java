@@ -14,7 +14,8 @@ public class Player extends Entity {
     private boolean onVine;
     private boolean dead;
     private int points;
-    
+    private int lives;
+
     /**
      * Constructs a new Player entity at the specified coordinates.
      * Initializes with default state: facing right, alive, on ground with zero points.
@@ -31,6 +32,7 @@ public class Player extends Entity {
         this.onVine = false;
         this.dead = false;
         this.points = 0;
+        this.lives = 3;
     }
 
     // --- GETTERS AND SETTERS --- //
@@ -40,10 +42,15 @@ public class Player extends Entity {
     public boolean isOnVine() { return onVine; }
     public boolean isDead() { return dead; }
     public int getPoints() { return points; }
+    public int getLives() { return lives; }
 
     public void setOnGround(boolean onGround) { this.onGround = onGround; }
     public void setOnVine(boolean onVine) { this.onVine = onVine; }
     public void setPoints(int pts) { this.points = pts; }
+    public void setIsDead(boolean deadBool) { this.dead = deadBool; }
+    public void setLives(int newLives) { this.lives = newLives; }
+    public void incLives() { this.lives++; }
+    public void decLives() { this.lives--; }
 
     /**
      * These methods calculate potential movements without validation
@@ -102,6 +109,7 @@ public class Player extends Entity {
     public void die() {
         if (!dead) {
             dead = true;
+            points = 0;
         }
     }
     
