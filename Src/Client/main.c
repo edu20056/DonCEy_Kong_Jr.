@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <stdatomic.h>
+#include <sys/time.h>
 
 atomic_int terminar_es = 0;
 
@@ -376,6 +377,9 @@ int clientLoop(void *arg) {
                 break;
             }
 
+            // ======================
+            //  MENSAJES DEL SERVIDOR
+            // ======================
             if (FD_ISSET(sock, &readfds)) {
                 ssize_t bytes = recv(sock, buffer, sizeof(buffer) - 1, 0);
                 if (bytes <= 0) {
@@ -389,6 +393,9 @@ int clientLoop(void *arg) {
                 fflush(stdout);
             }
 
+            // ======================
+            //  ENTRADA DEL TECLADO
+            // ======================
             if (FD_ISSET(STDIN_FILENO, &readfds)) {
                 char tecla;
                 ssize_t bytes = read(STDIN_FILENO, &tecla, 1);
@@ -396,12 +403,25 @@ int clientLoop(void *arg) {
 
                 char msg[4] = {0};
 
+                // ======================
+                // IGNORAR FLECHAS
+                // ======================
+                if (tecla == 27) { // ESC = inicio de flecha
+                    char dump[2];
+                    read(STDIN_FILENO, &dump[0], 1); // '['
+                    read(STDIN_FILENO, &dump[1], 1); // 'A/B/C/D'
+                    continue; // ignoramos completamente
+                }
+
+                // ======================
+                // WASD
+                // ======================
                 switch (tecla) {
                     case 'w': case 'W': strcpy(msg, "1"); break;
                     case 'd': case 'D': strcpy(msg, "2"); break;
                     case 's': case 'S': strcpy(msg, "3"); break;
                     case 'a': case 'A': strcpy(msg, "4"); break;
-                    case 'r': case 'R': strcpy(msg, "5"); break; // Reinicio
+                    case 'r': case 'R': strcpy(msg, "5"); break;
                     case 'q': case 'Q':
                         printf("Saliendo...\n");
                         reset_input_mode();
@@ -409,9 +429,27 @@ int clientLoop(void *arg) {
                         close(sock);
                         return 0;
                     default:
-                        continue;
+                        continue; // cualquier otra tecla ignorada
                 }
 
+                // ======================
+                // ANTI-SPAM SIN sleep
+                // ======================
+                struct timeval now;
+                static long last_send_time = 0;
+
+                gettimeofday(&now, NULL);
+                long ms = now.tv_sec * 1000 + now.tv_usec / 1000;
+
+                // solo enviar si han pasado 140ms
+                if (ms - last_send_time < 140) {
+                    continue;
+                }
+                last_send_time = ms;
+
+                // ======================
+                // ENVIAR MENSAJE
+                // ======================
                 strcat(msg, "\n");
                 send(sock, msg, strlen(msg), 0);
             }
