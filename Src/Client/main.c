@@ -45,13 +45,14 @@ typedef struct {
     char PlayerName[20]; 
     int espectadores;
     int dead;
+    int vidas;
 } Jugador;
 
 // Hilo de cliente
 thrd_t thread_client;
 
 // Instancia global del jugador
-Jugador jugador = {10, 10, 0, 0, 0, "", 0, 0};
+Jugador jugador = {10, 10, 0, 0, 0, "", 0, 0, 0};
 
 // Entidades dinámicas
 #define MAX_ENTIDADES 100
@@ -110,7 +111,7 @@ void procesarJSON(const char *json) {
         char *name = strstr(jug, "\"name\"");
         char *spect = strstr(inicio, "\"spect\""); 
         char *dead = strstr(inicio, "\"dead\""); 
-
+        char *lives = strstr(inicio, "\"lives\""); 
 
         if (xpos && xpos < fin) jugador.x = extraer_num(xpos + 4) * 20;
         if (ypos && ypos < fin) jugador.y = extraer_num(ypos + 4) * 20;
@@ -174,6 +175,15 @@ void procesarJSON(const char *json) {
             if (col) {
                 jugador.espectadores = extraer_num(col + 1);
                 printf("[DEBUG] jugadores.espectadores = %d\n", jugador.espectadores);
+            }
+        }
+
+        if (lives && lives < fin) {
+            // spect: <numero>
+            char *col = strchr(lives, ':');
+            if (col) {
+                jugador.vidas = extraer_num(col + 1);
+                printf("[DEBUG] jugadores.vidas = %d\n", jugador.vidas);
             }
         }
 
@@ -508,7 +518,7 @@ int main() {
 
         if (!jugador.dead){
             DrawMap();
-            DrawSidePanel(jugador.points, jugador.PlayerName, jugador.espectadores);
+            DrawSidePanel(jugador.points, jugador.PlayerName, jugador.espectadores, jugador.vidas);
             // Dibujo del sprite
             if (jugador.climbing) {
                 DrawSpriteAt(jr_cu, jugador.x, jugador.y, 3);

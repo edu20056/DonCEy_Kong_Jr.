@@ -107,8 +107,9 @@ public class Main {
                 gameDataJ1.fruits, 
                 gameDataJ1.crocodiles, 
                 servidor.J1_NAME, 
-                servidor.getSpectadoresSize(servidor.J1_NAME)
-            );
+                servidor.getSpectadoresSize(servidor.J1_NAME),
+                gameDataJ1.player.getLives());
+
             servidor.enviarA(s1, json1);
             servidor.enviarAMisEspectadores(servidor.J1_NAME, json1);
         }
@@ -149,7 +150,8 @@ public class Main {
                 gameDataJ2.fruits, 
                 gameDataJ2.crocodiles, 
                 servidor.J2_NAME, 
-                servidor.getSpectadoresSize(servidor.J2_NAME)
+                servidor.getSpectadoresSize(servidor.J2_NAME),
+                gameDataJ2.player.getLives()
             );
             servidor.enviarA(s2, json2);
             servidor.enviarAMisEspectadores(servidor.J2_NAME, json2);
@@ -375,7 +377,8 @@ public class Main {
                 gameData.fruits, 
                 gameData.crocodiles, 
                 nombreJugador, 
-                servidor.getSpectadoresSize(nombreJugador)
+                servidor.getSpectadoresSize(nombreJugador),
+                gameData.player.getLives()
             );
             servidor.enviarA(socket, json);
             servidor.enviarAMisEspectadores(nombreJugador, json);

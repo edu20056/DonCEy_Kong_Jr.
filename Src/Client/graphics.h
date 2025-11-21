@@ -25,7 +25,7 @@ void InitGraphics();
 void DrawMap();
 void CloseGraphics();
 void DrawSpriteAt(Texture2D tex, int x_pos, int y_pos, int dir);
-void DrawSidePanel(int points, const char *nombre, int spect);
+void DrawSidePanel(int points, const char *nombre, int spect, int lives);
 void DrawLose(void);
 
 

@@ -131,7 +131,7 @@ void CloseGraphics() {
 // ======================================================
 // Dibuja panel donde se ven los puntos de jugador
 // ======================================================
-void DrawSidePanel(int points, const char *nombre, int spect) {
+void DrawSidePanel(int points, const char *nombre, int spect, int lives) {
     int panelX = MAP_WIDTH * TILE_SIZE;  // Donde empieza el panel
 
     // Fondo del panel
@@ -153,7 +153,14 @@ void DrawSidePanel(int points, const char *nombre, int spect) {
 
     snprintf(buffer, sizeof(buffer), "%d", spect);
     DrawText(buffer, panelX + 20, 230, 28, YELLOW);
+
+    // ====== Vidas ======
+    DrawText("Vidas de jugador", panelX + 20, 290, 22, RAYWHITE);
+
+    snprintf(buffer, sizeof(buffer), "%d", lives);
+    DrawText(buffer, panelX + 20, 320, 28, YELLOW);
 }
+
 
 // ======================================================
 // Dibuja pantalla de pérdida

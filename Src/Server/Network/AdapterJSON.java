@@ -8,7 +8,7 @@ import Entities.Player;
 import Utils.Coords;
 
 public class AdapterJSON {
-    public String generarJSON(Player player, List<Fruit> frutas, List<Coco> cocos, String playerName, int espectadores) {
+    public String generarJSON(Player player, List<Fruit> frutas, List<Coco> cocos, String playerName, int espectadores, int vidas) {
         
         StringBuilder sb = new StringBuilder();
         sb.append("{");
@@ -22,7 +22,8 @@ public class AdapterJSON {
         sb.append("\"right\": ").append(player.isFacingRight()).append(", "); 
         sb.append("\"name\": \"").append(playerName.replace("\"","")).append("\", ");
         sb.append("\"spect\": ").append(Integer.toString(espectadores)).append("\", ");
-        sb.append("\"dead\": ").append(player.isDead()); 
+        sb.append("\"dead\": ").append(player.isDead()).append("\", ");
+        sb.append("\"lives\": ").append(Integer.toString(vidas)); 
         sb.append("},");
 
         // Entidades {tipo,x,y,abajo?}
