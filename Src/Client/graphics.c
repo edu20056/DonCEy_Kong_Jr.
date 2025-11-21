@@ -13,6 +13,7 @@ Texture2D CR_d;
 Texture2D CR_u;
 Texture2D CB_d;
 Texture2D CB_u;
+Texture2D donko;
 
 // ======================================================
 // Cargar mapa desde archivo
@@ -72,6 +73,9 @@ void InitGraphics() {
     CR_u     = LoadTexture("Sprites/Enemies/Red/kremling_red_u.png"); 
 
     CB_d     = LoadTexture("Sprites/Enemies/Blue/kremling_blue_d.png");
+
+    // Donko 
+    donko    = LoadTexture("Sprites/Donko/donko.png"); 
 }
 
 
@@ -99,6 +103,11 @@ void DrawMap() {
                 case 'H': DrawTile(liana,    px, py); break;
                 case '=': DrawTile(platform, px, py); break;
                 case 'X': DrawTile(mario,    px, py); break;
+                case 'D':     
+                        // --- Ajustes de posición ---
+                        int donko_x  = px - TILE_SIZE;
+                        int donko_y  = py - TILE_SIZE;          
+                        DrawTexture(donko, donko_x, donko_y, WHITE);
                 default: break;
             }
         }

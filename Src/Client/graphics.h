@@ -18,6 +18,7 @@ extern Texture2D CR_d;
 extern Texture2D CR_u;
 extern Texture2D CB_d;
 extern Texture2D CB_u;
+extern Texture2D donko;
 extern char map[MAP_HEIGHT][MAP_WIDTH + 1];
 
 void LoadMap(const char *filename);
