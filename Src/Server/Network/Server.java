@@ -49,65 +49,7 @@ public class Server {
     /**   FUNCIONES MODULARES         */
     /** ----------------------------- */
 
-    // Muestra los jugadores y las opciones principales
-    public void mostrarMenuPrincipal() {
-        System.out.println("\n====== MENÚ DEL SERVIDOR ======");
-        System.out.println("Jugadores conectados:");
-        if (jugadores.isEmpty()) {
-            System.out.println("  (ninguno)");
-        } else {
-            jugadores.keySet().forEach(j -> {
-                int count = espectadoresPorJugador.getOrDefault(j, Collections.emptyList()).size();
-                System.out.println("  - " + j + " (" + count + "/" + MAX_ESPECTADORES_POR_JUGADOR + " espectadores)");
-            });
-        }
-
-        System.out.println("\nOpciones:");
-        System.out.println("1. Enviar mensaje a un jugador");
-        System.out.println("2. Salir");
-        System.out.print("Seleccione una opción: ");
-    }
-
-    /** Opción 1: enviar mensaje a un jugador */
-    public void opcionEnviarMensaje(Scanner sc) {
-        if (jugadores.isEmpty()) {
-            System.out.println("No hay jugadores conectados.");
-            return;
-        }
-
-        // Mostrar jugadores con índices
-        System.out.println("Jugadores conectados:");
-        int i = 1;
-        List<String> nombres = new ArrayList<>(jugadores.keySet());
-        for (String nombre : nombres) {
-            System.out.println(i + ". " + nombre);
-            i++;
-        }
-
-        // Pedir número del jugador destino
-        System.out.print("Seleccione el número del jugador destino: ");
-        int opcion;
-        try {
-            opcion = Integer.parseInt(sc.nextLine());
-        } catch (NumberFormatException e) {
-            System.out.println("Entrada no válida.");
-            return;
-        }
-
-        if (opcion < 1 || opcion > nombres.size()) {
-            System.out.println("Número fuera de rango.");
-            return;
-        }
-
-        String destino = nombres.get(opcion - 1);
-
-        System.out.print("Mensaje para " + destino + ": ");
-        String mensaje = sc.nextLine();
-
-        enviarMensajeJugador(destino, mensaje);
-    }
-
-
+    
     /** Opción 2: ver espectadores de un jugador */
     public void opcionVerEspectadores(Scanner sc) {
         System.out.print("Ingrese nombre del jugador: ");
@@ -136,7 +78,6 @@ public class Server {
         String texto = "[SERVIDOR → " + jugador + "]: " + mensaje;
         enviarA(jugadorSocket, texto);
         enviarAMisEspectadores(jugador, texto);
-        System.out.println("Mensaje enviado a " + jugador);
     }
 
     // Mostrar espectadores conectados a un jugador
@@ -218,7 +159,6 @@ public class Server {
                     espectadoresPorJugador.putIfAbsent(jugadorAsociado, new ArrayList<>());
                     out.println("OK: Jugador registrado como: " + jugadorAsociado);
                     out.println("Puede comenzar a enviar mensajes.");
-                    System.out.println("Jugador conectado: " + jugadorAsociado);
                     manejarJugador();
 
                 } else if (line.startsWith("SPECTATOR")) {
@@ -324,10 +264,6 @@ public class Server {
             out.println("=== Ahora recibirá todos los mensajes de " + jugadorAsociado + " ===");
             out.flush();
 
-            System.out.println("Nuevo espectador conectado a " + jugadorAsociado +
-                    " (Total: " + espectadoresPorJugador.get(jugadorAsociado).size() +
-                    "/" + MAX_ESPECTADORES_POR_JUGADOR + ")");
-
             // El espectador no envía mensajes
             try {
                 while (true) {
@@ -356,14 +292,12 @@ public class Server {
                             } catch (IOException ignored) {}
                         }
                     }
-                    System.out.println("Jugador desconectado: " + jugadorAsociado);
                     if (jugadorAsociado == J1_NAME){
                         J1_desc = true;
                     }
                     else { // J2_NAME
                         J2_desc = true;
                     }
-                    System.out.println(J1_ING + " " + J1_desc + " " + J2_ING + " " + J2_desc);
                 } else if ("SPECTATOR".equals(tipo) && jugadorAsociado != null) {
                     List<Socket> lista = espectadoresPorJugador.get(jugadorAsociado);
                     if (lista != null) {
@@ -371,7 +305,6 @@ public class Server {
                             lista.remove(socket);
                         }
                     }
-                    System.out.println("Espectador desconectado de " + jugadorAsociado);
                 }
                 socket.close();
             } catch (IOException ignored) {
