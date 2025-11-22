@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <stdatomic.h>
+#include <sys/time.h>
 
 atomic_int terminar_es = 0;
 
@@ -42,13 +43,17 @@ typedef struct {
     int climbing;
     int right;
     int points;
+    char PlayerName[20]; 
+    int espectadores;
+    int dead;
+    int vidas;
 } Jugador;
 
 // Hilo de cliente
 thrd_t thread_client;
 
 // Instancia global del jugador
-Jugador jugador = {10, 10, 0, 0, 0};
+Jugador jugador = {10, 10, 0, 0, 0, "", 0, 0, 0};
 
 // Entidades dinámicas
 #define MAX_ENTIDADES 100
@@ -104,6 +109,10 @@ void procesarJSON(const char *json) {
         char *pts  = strstr(inicio, "\"puntos\"");
         char *climb = strstr(inicio, "\"climbing\"");
         char *right = strstr(inicio, "\"right\"");
+        char *name = strstr(jug, "\"name\"");
+        char *spect = strstr(inicio, "\"spect\""); 
+        char *dead = strstr(inicio, "\"dead\""); 
+        char *lives = strstr(inicio, "\"lives\""); 
 
         if (xpos && xpos < fin) jugador.x = extraer_num(xpos + 4) * 20;
         if (ypos && ypos < fin) jugador.y = extraer_num(ypos + 4) * 20;
@@ -114,7 +123,16 @@ void procesarJSON(const char *json) {
                 char *val = colon + 1;
                 while (*val == ' ' || *val == '\t') val++;
                 jugador.climbing = (*val == 't') ? 1 : 0;
-                printf("[DEBUG] valor climbing = %c, jugador.climbing = %d\n", *val, jugador.climbing);
+            }
+        }
+
+        if (dead != NULL) {
+            char *colon = strchr(dead, ':');
+            if (colon != NULL) {
+                char *val = colon + 1;
+                while (*val == ' ' || *val == '\t') val++;
+                jugador.dead = (*val == 't') ? 1 : 0;
+                printf("[DEBUG] valor dead = %c, jugador.dead = %d\n", *val, jugador.dead);
             }
         }
         if (right != NULL) {
@@ -125,9 +143,51 @@ void procesarJSON(const char *json) {
                 char *val = colon + 1;
                 while (*val == ' ' || *val == '\t') val++;
                 jugador.right = (*val == 't') ? 1 : 0;
-                printf("[DEBUG] valor right = %c, jugador.right = %d\n", *val, jugador.right);
             }
         }
+
+        // ===== name =====
+        if (name && name < fin) {
+            char *colon = strchr(name, ':');
+            if (colon) {
+                char *val = colon + 1;
+
+                // Saltar espacios
+                while (*val == ' ' || *val == '\t') val++;
+
+                // Debe iniciar con comilla "
+                if (*val == '"') {
+                    val++; // saltar primera comilla
+
+                    int i = 0;
+                    while (*val && *val != '"' && i < sizeof(jugador.PlayerName) - 1) {
+                        jugador.PlayerName[i++] = *val++;
+                    }
+
+                    jugador.PlayerName[i] = '\0';
+                }
+            }
+        }
+
+        // ===== spectators =====
+        if (spect && spect < fin) {
+            // spect: <numero>
+            char *col = strchr(spect, ':');
+            if (col) {
+                jugador.espectadores = extraer_num(col + 1);
+                printf("[DEBUG] jugadores.espectadores = %d\n", jugador.espectadores);
+            }
+        }
+
+        if (lives && lives < fin) {
+            // spect: <numero>
+            char *col = strchr(lives, ':');
+            if (col) {
+                jugador.vidas = extraer_num(col + 1);
+                printf("[DEBUG] jugadores.vidas = %d\n", jugador.vidas);
+            }
+        }
+
     }
 
     // ===== ENTIDADES =====
@@ -137,22 +197,34 @@ void procesarJSON(const char *json) {
         char *inicio = strchr(ent, '[');
         char *fin = strchr(ent, ']');
         if (inicio && fin && inicio < fin) {
+
             char *p = inicio;
             while (p < fin && numEntidades < MAX_ENTIDADES) {
-                char *xpos = strstr(p, "\"x\"");
-                char *ypos = strstr(p, "\"y\"");
+
+                char *xpos  = strstr(p, "\"x\"");
+                char *ypos  = strstr(p, "\"y\"");
                 char *typep = strstr(p, "\"tipo\"");
                 char *viewp = strstr(p, "\"View\"");
 
-                if (!xpos || !ypos || !typep || !viewp || xpos > fin || ypos > fin) break;
+                if (!xpos || !ypos || !typep || !viewp) break;
+                if (xpos > fin || ypos > fin || viewp > fin) break;
 
-                entidades[numEntidades].x = extraer_num(xpos + 4)* 20;
-                entidades[numEntidades].y = extraer_num(ypos + 4)* 20;
+                entidades[numEntidades].x = extraer_num(xpos + 4) * 20;
+                entidades[numEntidades].y = extraer_num(ypos + 4) * 20;
                 extraer_string(typep + 6, entidades[numEntidades].type, 20);
-                entidades[numEntidades].view = (*(viewp + 7) == 't'); // true/false
+
+                // leer booleano "true"/"false"
+                char *val = viewp + 7;
+                entidades[numEntidades].view = (*val == 't');
+
+                printf("[DEBUG] entidad[i].view = %d\n", entidades[numEntidades].view);
 
                 numEntidades++;
-                p = ypos + 4;
+
+                // Mover al final del objeto actual
+                char *endObj = strchr(viewp, '}');
+                if (!endObj) break;
+                p = endObj + 1;
             }
         }
     }
@@ -263,6 +335,7 @@ int clientLoop(void *arg) {
     }
     else {
         printf("Opción inválida.\n");
+        terminar_es = 1;
         close(sock);
         return 0;
     }
@@ -317,6 +390,9 @@ int clientLoop(void *arg) {
                 break;
             }
 
+            // ======================
+            //  MENSAJES DEL SERVIDOR
+            // ======================
             if (FD_ISSET(sock, &readfds)) {
                 ssize_t bytes = recv(sock, buffer, sizeof(buffer) - 1, 0);
                 if (bytes <= 0) {
@@ -330,6 +406,9 @@ int clientLoop(void *arg) {
                 fflush(stdout);
             }
 
+            // ======================
+            //  ENTRADA DEL TECLADO
+            // ======================
             if (FD_ISSET(STDIN_FILENO, &readfds)) {
                 char tecla;
                 ssize_t bytes = read(STDIN_FILENO, &tecla, 1);
@@ -337,20 +416,53 @@ int clientLoop(void *arg) {
 
                 char msg[4] = {0};
 
+                // ======================
+                // IGNORAR FLECHAS
+                // ======================
+                if (tecla == 27) { // ESC = inicio de flecha
+                    char dump[2];
+                    read(STDIN_FILENO, &dump[0], 1); // '['
+                    read(STDIN_FILENO, &dump[1], 1); // 'A/B/C/D'
+                    continue; // ignoramos completamente
+                }
+
+                // ======================
+                // WASD
+                // ======================
                 switch (tecla) {
                     case 'w': case 'W': strcpy(msg, "1"); break;
                     case 'd': case 'D': strcpy(msg, "2"); break;
                     case 's': case 'S': strcpy(msg, "3"); break;
                     case 'a': case 'A': strcpy(msg, "4"); break;
+                    case 'r': case 'R': strcpy(msg, "5"); break;
                     case 'q': case 'Q':
                         printf("Saliendo...\n");
                         reset_input_mode();
+                        terminar_es = 1;
                         close(sock);
                         return 0;
                     default:
-                        continue;
+                        continue; // cualquier otra tecla ignorada
                 }
 
+                // ======================
+                // ANTI-SPAM SIN sleep
+                // ======================
+                struct timeval now;
+                static long last_send_time = 0;
+
+                gettimeofday(&now, NULL);
+                long ms = now.tv_sec * 1000 + now.tv_usec / 1000;
+
+                // solo enviar si han pasado 80ms
+                if (ms - last_send_time < 80) {
+                    continue;
+                }
+                last_send_time = ms;
+
+                // ======================
+                // ENVIAR MENSAJE
+                // ======================
                 strcat(msg, "\n");
                 send(sock, msg, strlen(msg), 0);
             }
@@ -454,57 +566,60 @@ int main() {
         BeginDrawing();
         ClearBackground(BLACK);
 
-        DrawMap();
 
-        // Dibujo del sprite
-        if (jugador.climbing) {
-            DrawSpriteAt(jr_cu, jugador.x, jugador.y, 3);
-        }
-        else {
-            if (jugador.right) {
-                DrawSpriteAt(jr_b, jugador.x, jugador.y, 3);
-            } else {
-                DrawSpriteAt(jr_a, jugador.x, jugador.y, 3);
+        if (!jugador.dead){
+            DrawMap();
+            DrawSidePanel(jugador.points, jugador.PlayerName, jugador.espectadores, jugador.vidas);
+            // Dibujo del sprite
+            if (jugador.climbing) {
+                DrawSpriteAt(jr_cu, jugador.x, jugador.y, 3);
             }
-        }
-
-        if (numEntidades > 0) {
-            for (int i = 0; i < numEntidades; i++) {
-                char tipo[20] = "";
-                if (strcmp(entidades[i].type, "ROJO") == 0) { // Es rojo
-                    if (entidades[i].view) { // Esta viendo abajo ?
-                        DrawSpriteAt(CR_d, entidades[i].x, entidades[i].y, 1);
-                    }
-                    else {
-                        DrawSpriteAt(CR_u, entidades[i].x, entidades[i].y, 1);
-                    }
+            else {
+                if (jugador.right) {
+                    DrawSpriteAt(jr_b, jugador.x, jugador.y, 3);
+                } else {
+                    DrawSpriteAt(jr_a, jugador.x, jugador.y, 3);
                 }
-                else { // Es azul
-                    if (entidades[i].view) { // Esta viendo abajo ?
+            }
+
+            if (numEntidades > 0) {
+                for (int i = 0; i < numEntidades; i++) {
+                    char tipo[20] = "";
+                    if (strcmp(entidades[i].type, "ROJO") == 0) { // Es rojo
+                        if (entidades[i].view){
+                            DrawSpriteAt(CR_d, entidades[i].x, entidades[i].y, 1);
+                        }
+                        else {
+                            DrawSpriteAt(CR_u, entidades[i].x, entidades[i].y, 1);
+                        }
+                        
+                    }
+                    else { // Es azul
                         DrawSpriteAt(CB_d, entidades[i].x, entidades[i].y, 1);
-                    }
-                    else {
-                        DrawSpriteAt(CB_u, entidades[i].x, entidades[i].y, 1);
+
                     }
                 }
             }
+
+            if (numFrutas > 0) {
+                for (int i = 0; i < numFrutas; i++) {
+                    if (strcmp(frutas[i].type, "BANANA") == 0) {
+                        DrawSpriteAt(f_ban, frutas[i].x, frutas[i].y, 3);
+                    }
+                    else if (strcmp(frutas[i].type, "STRAWBERRY") == 0)
+                    {
+                        DrawSpriteAt(f_str, frutas[i].x, frutas[i].y, 3);
+                    }
+                    else { // Naranja
+                        DrawSpriteAt(f_or, frutas[i].x, frutas[i].y, 3);   
+                    }
+                }            
+            }
+        }
+        else { // Jugador murió
+            DrawLose();
         }
 
-        if (numFrutas > 0) {
-            for (int i = 0; i < numFrutas; i++) {
-                if (strcmp(frutas[i].type, "BANANA") == 0) {
-                    DrawSpriteAt(f_ban, frutas[i].x, frutas[i].y, 3);
-                }
-                else if (strcmp(frutas[i].type, "STRAWBERRY") == 0)
-                {
-                    DrawSpriteAt(f_str, frutas[i].x, frutas[i].y, 3);
-                }
-                else { // Naranja
-                    DrawSpriteAt(f_or, frutas[i].x, frutas[i].y, 3);   
-                }
-            }            
-        }
-        // Aqui faltaría pegar la cantidad de puntos actual del jugador
 
         EndDrawing();
     }

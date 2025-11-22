@@ -20,7 +20,21 @@ public class CollisionSystem {
     public CollisionSystem(World world) {
         this.world = world;
     }
-    
+
+    /**
+     * Check win condition requirements.
+     * Goal is reach.
+     *
+     * @param player extract players coords to check for collision
+     * @return true if collision with goal, false otherwise.
+     */
+     
+     public boolean checkWinCollision(Player player) {
+        Coords playerPos = player.getPosition();
+
+        return world.isWithinBounds(playerPos) && world.getTile(playerPos).isGoal();
+    }
+
     /**
      * Checks if a position is valid for movement.
      */
@@ -32,7 +46,7 @@ public class CollisionSystem {
     /**
      * Checks if a position contains a vine tile.
      */
-
+    
     public boolean isOnVine(Coords coords) {
         return world.isWithinBounds(coords) && world.getTile(coords) == TileType.VINE;
     }
@@ -40,7 +54,7 @@ public class CollisionSystem {
     /**
      * Checks if a position contains a deadly tile.
      */
-
+    
     public boolean isDeadlyTile(Coords coords) {
         return world.isWithinBounds(coords) && world.getTile(coords).isDeadly();
     }
@@ -48,7 +62,7 @@ public class CollisionSystem {
     /**
      * Checks if a position is above solid ground.
      */
-
+    
     public boolean isOnGround(Coords coords) {
         if (!world.isWithinBounds(coords)) return false;
         
@@ -61,7 +75,7 @@ public class CollisionSystem {
      * Uses null-safe collections to avoid overloaded methods.
      */
 
-    public void updatePlayerState(Player player, List<Coco> cocodrilos, List<Fruit> frutas) {
+    public void updatePlayerState(Player player, List<Coco> cocodrilos, List<Fruit> fruits) {
         if (player == null || player.isDead()) return;
     
         Coords playerPos = player.getPosition();
@@ -69,36 +83,31 @@ public class CollisionSystem {
         // Update environmental states
         player.setOnVine(isOnVine(playerPos));
         player.setOnGround(isOnGround(playerPos));
-        
+
         // Check for fatal collisions (stop if player dies)
         if (checkFatalCollisions(player, playerPos, cocodrilos)) {
+            player.die();
             return;
         }
         
         // Check for collectibles (non-fatal)
-        checkCollectibleCollisions(player, playerPos, frutas);
+        checkCollectibleCollisions(player, playerPos, fruits);
     }
     
     /**
      * Checks for collisions that can kill the player.
      * 
-     * @returns true if player died.
+     * @return true if player died.
      */
 
-    private boolean checkFatalCollisions(Player player,
-        Coords playerPos, List<Coco> cocodrilos) {
-        
-        // Check deadly tiles
+    private boolean checkFatalCollisions(Player player, Coords playerPos, List<Coco> cocodrilos) {
         if (isDeadlyTile(playerPos)) {
-            player.die();
             return true;
         }
 
-        // Check cocodrilos collision
         if (cocodrilos != null) {
             for (Coco cocodrilo : cocodrilos) {
-                if (cocodrilo.isActivo() && playerPos.equals(cocodrilo.getPosition())) {
-                    player.die();
+                if (cocodrilo.isActive() && playerPos.equals(cocodrilo.getPosition())) {
                     return true;
                 }
             }
@@ -111,15 +120,15 @@ public class CollisionSystem {
      * Checks for collectible collisions
      */
 
-    private void checkCollectibleCollisions(Player player, Coords playerPos, List<Fruit> frutas) {
-        if (frutas == null) return;
+    private void checkCollectibleCollisions(Player player, Coords playerPos, List<Fruit> fruits) {
+        if (fruits == null) return;
         
-        Iterator<Fruit> iterator = frutas.iterator();
+        Iterator<Fruit> iterator = fruits.iterator();
         while (iterator.hasNext()) {
             Fruit fruit = iterator.next();
-            if (fruit.isActiva() && playerPos.equals(fruit.getPosition())) {
-                player.addPoints(fruit.getPuntos());
-                System.out.println("FRUTA!!!");
+            if (fruit.isActive() && playerPos.equals(fruit.getPosition())) {
+                player.addPoints(fruit.getPoints());
+                fruit.collect();
                 iterator.remove();
             }
         }

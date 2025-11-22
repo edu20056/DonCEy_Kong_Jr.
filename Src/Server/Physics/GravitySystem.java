@@ -5,59 +5,17 @@ import Utils.Coords;
 
 /**
  * Handles gravity physics for entities in the game.
- * Applies falling mechanics with acceleration and frame-based timing.
- * The system uses a delay mechanism to optimize performance by applying
- * gravity only every few frames while maintaining smooth falling behavior.
- * 
- * @author [Your Name or Team Name]
- * @version 1.1
- * @since 1.0
  */
+
 public class GravitySystem {
-    // ===== GRAVITY CONFIGURATION CONSTANTS =====
-    
-    /**
-     * Number of frames to wait between gravity applications.
-     * Higher values make gravity feel slower, lower values make it more responsive.
-     */
     private static final int GRAVITY_DELAY = 0;
-    
-    /**
-     * Initial falling speed when player first starts falling.
-     * Increased from 1.5f to 2.0f for faster initial fall.
-     */
     private static final float INITIAL_FALL_SPEED = 2.0f;
-    
-    /**
-     * Maximum falling speed the player can reach.
-     * Increased from 3.0f to 4.5f for more dramatic falling.
-     */
     private static final float MAX_FALL_SPEED = 5.5f;
-    
-    /**
-     * Rate at which falling speed increases each frame.
-     * Increased from 0.1f to 0.15f for quicker acceleration.
-     */
     private static final float FALL_ACCELERATION = 1.5f;
     
-    // ===== INSTANCE VARIABLES =====
-    
-    /**
-     * Reference to the collision system for validating movements.
-     */
     private final CollisionSystem collisionSystem;
-    
-    /**
-     * Counter to track frames between gravity applications.
-     */
     private int gravityCounter = 0;
-    
-    /**
-     * Current falling speed of the player, increases with acceleration.
-     */
     private float fallSpeed = INITIAL_FALL_SPEED;
-    
-    // ===== CONSTRUCTOR =====
     
     /**
      * Constructs a GravitySystem with the specified collision system.
@@ -65,14 +23,13 @@ public class GravitySystem {
      * @param collisionSystem The collision system used to validate falling movements
      * @throws IllegalArgumentException if collisionSystem is null
      */
+
     public GravitySystem(CollisionSystem collisionSystem) {
         if (collisionSystem == null) {
             throw new IllegalArgumentException("CollisionSystem cannot be null");
         }
         this.collisionSystem = collisionSystem;
     }
-    
-    // ===== PUBLIC API =====
     
     /**
      * Applies gravity physics to the player if conditions are met.
@@ -81,8 +38,8 @@ public class GravitySystem {
      * 
      * @param player The player entity to apply gravity to
      */
+
     public void applyGravity(Player player) {
-        // Skip gravity application if player is ineligible
         if (shouldSkipGravity(player)) {
             resetFallSpeed();
             return;
@@ -104,8 +61,6 @@ public class GravitySystem {
         collisionSystem.updatePlayerState(player, null, null);
     }
     
-    // ===== PRIVATE HELPER METHODS =====
-    
     /**
      * Determines if gravity should be skipped for the player.
      * Gravity is skipped if player is null, dead, or climbing.
@@ -113,6 +68,7 @@ public class GravitySystem {
      * @param player The player to check
      * @return true if gravity should be skipped, false otherwise
      */
+
     private boolean shouldSkipGravity(Player player) {
         return player == null || player.isDead();
     }
@@ -123,6 +79,7 @@ public class GravitySystem {
      * 
      * @return true if gravity should be applied this frame, false otherwise
      */
+    
     private boolean shouldApplyThisFrame() {
         gravityCounter++;
         if (gravityCounter < GRAVITY_DELAY) {
@@ -139,6 +96,7 @@ public class GravitySystem {
      * @param player The player to check
      * @return true if player should fall, false otherwise
      */
+    
     private boolean shouldFall(Player player) {
         return !player.isOnGround() && !player.isOnVine();
     }
@@ -149,6 +107,7 @@ public class GravitySystem {
      * 
      * @param player The player to apply falling physics to
      */
+    
     private void applyFalling(Player player) {
         // Increase fall speed with acceleration, capped at maximum
         fallSpeed = Math.min(fallSpeed + FALL_ACCELERATION, MAX_FALL_SPEED);
@@ -167,27 +126,8 @@ public class GravitySystem {
      * Resets the falling speed to initial value.
      * Called when player lands on ground or grabs a vine.
      */
+    
     private void resetFallSpeed() {
         fallSpeed = INITIAL_FALL_SPEED;
-    }
-    
-    // ===== DEBUG/UTILITY METHODS =====
-    
-    /**
-     * Gets the current fall speed for debugging purposes.
-     * 
-     * @return The current falling speed value
-     */
-    public float getCurrentFallSpeed() {
-        return fallSpeed;
-    }
-    
-    /**
-     * Gets the gravity delay value for debugging purposes.
-     * 
-     * @return The gravity delay in frames
-     */
-    public int getGravityDelay() {
-        return GRAVITY_DELAY;
     }
 }

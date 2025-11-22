@@ -13,7 +13,8 @@ Texture2D CR_d;
 Texture2D CR_u;
 Texture2D CB_d;
 Texture2D CB_u;
-
+Texture2D donko;
+Texture2D base;
 // ======================================================
 // Cargar mapa desde archivo
 // ======================================================
@@ -50,13 +51,14 @@ static Texture2D mario;
 // Inicializar la ventana y texturas
 // ======================================================
 void InitGraphics() {
-    InitWindow(MAP_WIDTH * TILE_SIZE, MAP_HEIGHT * TILE_SIZE, "Mapa DonCEYkong Jr");
+    InitWindow(MAP_WIDTH * TILE_SIZE + SIDE_PANEL_WIDTH, MAP_HEIGHT * TILE_SIZE, "Mapa DonCEYkong Jr");
 
     // Tiles
     water    = LoadTexture("Sprites/water.png");
     liana    = LoadTexture("Sprites/liana.png");
     platform = LoadTexture("Sprites/platform.png");
     mario    = LoadTexture("Sprites/mario.png");
+    base     = LoadTexture("Sprites/downplatform.png");
 
     // Jugador
     jr_a     = LoadTexture("Sprites/Jr/dkjr_caminar_izquierda_3.png"); 
@@ -71,8 +73,10 @@ void InitGraphics() {
     CR_d     = LoadTexture("Sprites/Enemies/Red/kremling_red_d.png"); 
     CR_u     = LoadTexture("Sprites/Enemies/Red/kremling_red_u.png"); 
 
-    CB_d     = LoadTexture("Sprites/Enemies/Blue/kremling_blue_d.png"); 
-    CB_u     = LoadTexture("Sprites/Enemies/Blue/kremling_blue.png"); // <- poner imagen correcta
+    CB_d     = LoadTexture("Sprites/Enemies/Blue/kremling_blue_d.png");
+
+    // Donko 
+    donko    = LoadTexture("Sprites/Donko/donko.png"); 
 }
 
 
@@ -99,7 +103,18 @@ void DrawMap() {
                 case '~': DrawTile(water,    px, py); break;
                 case 'H': DrawTile(liana,    px, py); break;
                 case '=': DrawTile(platform, px, py); break;
-                case 'X': DrawTile(mario,    px, py); break;
+                case 'L': DrawTile(base, px, py); break;
+                case 'X': {
+                            float scale = 1.3f;
+                            Vector2 pos = { px - 10, py - 10 };
+                            DrawTextureEx(mario, pos, 0, scale, WHITE);
+                            break;
+                        }
+                case 'D':     
+                        // --- Ajustes de posición ---
+                        int donko_x  = px - TILE_SIZE;
+                        int donko_y  = py - TILE_SIZE;          
+                        DrawTexture(donko, donko_x, donko_y, WHITE);
                 default: break;
             }
         }
@@ -111,8 +126,23 @@ void DrawMap() {
 // ======================================================
 void DrawSpriteAt(Texture2D tex, int x_pos, int y_pos, int dir) {
 
+    float scale = 1.3f; 
+
     Rectangle src  = (Rectangle){0, 0, tex.width, tex.height};
-    Rectangle dest = (Rectangle){x_pos, y_pos, TILE_SIZE, TILE_SIZE};
+
+    // Tamaño final escalado
+    float w = TILE_SIZE * scale;
+    float h = TILE_SIZE * scale;
+
+    // Centrar el sprite escalado
+    float offsetX = (w - TILE_SIZE) / 2.0f;
+    float offsetY = (h - TILE_SIZE) / 2.0f;
+
+    Rectangle dest = (Rectangle){
+        x_pos - offsetX,
+        y_pos - offsetY,
+        w, h
+    };
 
     DrawTexturePro(tex, src, dest, (Vector2){0, 0}, 0.0f, WHITE);
 }
@@ -128,3 +158,71 @@ void CloseGraphics() {
     UnloadTexture(mario);
     CloseWindow();
 }
+
+// ======================================================
+// Dibuja panel donde se ven los puntos de jugador
+// ======================================================
+void DrawSidePanel(int points, const char *nombre, int spect, int lives) {
+    int panelX = MAP_WIDTH * TILE_SIZE;  // Donde empieza el panel
+
+    // Fondo del panel
+    DrawRectangle(panelX, 0, SIDE_PANEL_WIDTH, MAP_HEIGHT * TILE_SIZE, DARKGRAY);
+
+    // ====== Nombre del jugador ======
+    DrawText("Nombre Jugador", panelX + 20, 20, 22, RAYWHITE);
+    DrawText(nombre,            panelX + 20, 55, 28, YELLOW);
+
+    // ====== Puntos ======
+    DrawText("Puntos:", panelX + 20, 110, 22, RAYWHITE);
+
+    char buffer[16];
+    snprintf(buffer, sizeof(buffer), "%d", points);
+    DrawText(buffer, panelX + 20, 140, 28, YELLOW);
+
+    // ====== Espectadores ======
+    DrawText("Espectadores", panelX + 20, 200, 22, RAYWHITE);
+
+    snprintf(buffer, sizeof(buffer), "%d", spect);
+    DrawText(buffer, panelX + 20, 230, 28, YELLOW);
+
+    // ====== Vidas ======
+    DrawText("Vidas de jugador", panelX + 20, 290, 22, RAYWHITE);
+
+    snprintf(buffer, sizeof(buffer), "%d", lives);
+    DrawText(buffer, panelX + 20, 320, 28, YELLOW);
+}
+
+
+// ======================================================
+// Dibuja pantalla de pérdida
+// ======================================================
+void DrawLose() {
+    const int boxWidth  = 600;
+    const int boxHeight = 200;
+
+    int centerX = (MAP_WIDTH * TILE_SIZE) / 2;
+    int centerY = (MAP_HEIGHT * TILE_SIZE) / 2;
+
+    int boxX = centerX - boxWidth / 2;
+    int boxY = centerY - boxHeight / 2;
+
+    // Fondo del recuadro
+    DrawRectangle(boxX, boxY, boxWidth, boxHeight, Fade(BLACK, 0.8f));
+
+    // Borde
+    DrawRectangleLines(boxX, boxY, boxWidth, boxHeight, RAYWHITE);
+
+    // Texto
+    DrawText("El jugador ha muerto", 
+             boxX + 40, 
+             boxY + 50, 
+             30, 
+             RAYWHITE);
+
+    DrawText("Presione Q para salir o R para reiniciar", 
+             boxX + 40, 
+             boxY + 110, 
+             20, 
+             RAYWHITE);
+}
+

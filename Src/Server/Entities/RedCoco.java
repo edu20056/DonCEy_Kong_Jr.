@@ -1,53 +1,87 @@
-// Entities/RedCoco.java
 package Entities;
 
 import Utils.Coords;
 import World.World;
 import World.TileType;
 
+/**
+ * Red cocodrile enemy that moves vertically on vines in a patrolling pattern.
+ * This cocodrile moves up and down on vines, changing direction after reaching
+ * a maximum distance or when encountering obstacles.
+ */
+
 public class RedCoco extends Coco {
-    private boolean moviendoseArriba = true;
-    private final int distanciaMaxima = 3;
-    private int distanciaRecorrida = 0;
-    
-    public RedCoco(int x, int y) {
-        super(x, y, "ROJO");
-        System.out.println("Cocodrilo Rojo creado en: " + x + ", " + y);
+    private boolean movingUp = true;
+    private int distanceTraveled = 0;
+
+    public RedCoco(int x, int y, int movementSpeed) {
+        super(x, y, "ROJO", movementSpeed);
     }
+    
+    // --- GETTERS ---
+
+    public boolean isMovingUp() { return movingUp; }
+    public int getDistanceTraveled() { return distanceTraveled; }
+    
+    /**
+     * Gets the facing direction of the red cocodrile.
+     * Red cocodriles face downward when moving down, upward when moving up.
+     * 
+     * @return true if facing downward, false if facing upward
+     */
 
     @Override
     public boolean getIsFacingDown() {
-        return !moviendoseArriba;
+        return !movingUp;
     }
 
+    /**
+     * Updates the red cocodrile's state and position.
+     * Handles vertical patrolling movement on vines, direction changes,
+     * and deactivation when leaving vines.
+     * 
+     * @param world The game world for collision detection and tile checking
+     */
+
     @Override
-    public void actualizar(World world) {
-        if (!isActivo()) return;
+    public void update(World world) {
+        if (!isActive()) return;
         
-        // Verificar que todavía esté en una liana
-        if (!estaSobreLiana(world)) {
-            setActivo(false);
+        // Only move based on speed timing
+        if (!shouldMove()) {
             return;
         }
         
-        // Determinar dirección del movimiento
-        int direccionY = moviendoseArriba ? -1 : 1;
-        Coords nuevaPos = new Coords(getX(), getY() + direccionY);
+        // Verify it's still on a vine
+        if (!isOnVine(world)) {
+            setActive(false);
+            return;
+        }
         
-        // Verificar si puede moverse y si la nueva posición es una liana
-        if (puedeMoverseA(nuevaPos, world) && world.getTile(nuevaPos) == TileType.VINE) {
-            setPosition(nuevaPos);
-            distanciaRecorrida++;
+        // Determine movement direction
+        int directionY = movingUp ? -1 : 1;
+        Coords newPos = new Coords(getX(), getY() + directionY);
+        
+        // Verify if it can move and if the new position is a vine
+        if (canMoveTo(newPos, world) && world.getTile(newPos) == TileType.VINE) {
+            setPosition(newPos);
+            distanceTraveled++;
             
-            // Cambiar dirección si alcanzó la distancia máxima
-            if (distanciaRecorrida >= distanciaMaxima) {
-                moviendoseArriba = !moviendoseArriba;
-                distanciaRecorrida = 0;
-            }
         } else {
-            // Si no puede moverse, cambiar dirección
-            moviendoseArriba = !moviendoseArriba;
-            distanciaRecorrida = 0;
+            // If cannot move, change direction
+            movingUp = !movingUp;
+            distanceTraveled = 0;
+        }
+    }
+
+    private int getFramesBetweenMoves() {
+        switch (movementSpeed) {
+            case 1: return 7;
+            case 2: return 5;
+            case 3: return 3;
+            case 4: return 2;
+            case 5: return 1;
+            default: return 0;
         }
     }
 }
