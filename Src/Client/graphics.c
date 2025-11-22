@@ -14,7 +14,7 @@ Texture2D CR_u;
 Texture2D CB_d;
 Texture2D CB_u;
 Texture2D donko;
-
+Texture2D base;
 // ======================================================
 // Cargar mapa desde archivo
 // ======================================================
@@ -58,6 +58,7 @@ void InitGraphics() {
     liana    = LoadTexture("Sprites/liana.png");
     platform = LoadTexture("Sprites/platform.png");
     mario    = LoadTexture("Sprites/mario.png");
+    base     = LoadTexture("Sprites/downplatform.png");
 
     // Jugador
     jr_a     = LoadTexture("Sprites/Jr/dkjr_caminar_izquierda_3.png"); 
@@ -102,9 +103,10 @@ void DrawMap() {
                 case '~': DrawTile(water,    px, py); break;
                 case 'H': DrawTile(liana,    px, py); break;
                 case '=': DrawTile(platform, px, py); break;
+                case 'L': DrawTile(base, px, py); break;
                 case 'X': {
                             float scale = 1.3f;
-                            Vector2 pos = { px, py - 10 };
+                            Vector2 pos = { px - 10, py - 10 };
                             DrawTextureEx(mario, pos, 0, scale, WHITE);
                             break;
                         }

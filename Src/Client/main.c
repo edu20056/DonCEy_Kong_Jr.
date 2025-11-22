@@ -335,6 +335,7 @@ int clientLoop(void *arg) {
     }
     else {
         printf("Opción inválida.\n");
+        terminar_es = 1;
         close(sock);
         return 0;
     }
@@ -453,8 +454,8 @@ int clientLoop(void *arg) {
                 gettimeofday(&now, NULL);
                 long ms = now.tv_sec * 1000 + now.tv_usec / 1000;
 
-                // solo enviar si han pasado 140ms
-                if (ms - last_send_time < 140) {
+                // solo enviar si han pasado 80ms
+                if (ms - last_send_time < 80) {
                     continue;
                 }
                 last_send_time = ms;
