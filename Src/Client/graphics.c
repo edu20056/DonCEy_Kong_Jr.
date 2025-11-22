@@ -102,7 +102,12 @@ void DrawMap() {
                 case '~': DrawTile(water,    px, py); break;
                 case 'H': DrawTile(liana,    px, py); break;
                 case '=': DrawTile(platform, px, py); break;
-                case 'X': DrawTile(mario,    px, py); break;
+                case 'X': {
+                            float scale = 1.3f;
+                            Vector2 pos = { px, py - 10 };
+                            DrawTextureEx(mario, pos, 0, scale, WHITE);
+                            break;
+                        }
                 case 'D':     
                         // --- Ajustes de posición ---
                         int donko_x  = px - TILE_SIZE;
@@ -119,8 +124,23 @@ void DrawMap() {
 // ======================================================
 void DrawSpriteAt(Texture2D tex, int x_pos, int y_pos, int dir) {
 
+    float scale = 1.3f; 
+
     Rectangle src  = (Rectangle){0, 0, tex.width, tex.height};
-    Rectangle dest = (Rectangle){x_pos, y_pos, TILE_SIZE, TILE_SIZE};
+
+    // Tamaño final escalado
+    float w = TILE_SIZE * scale;
+    float h = TILE_SIZE * scale;
+
+    // Centrar el sprite escalado
+    float offsetX = (w - TILE_SIZE) / 2.0f;
+    float offsetY = (h - TILE_SIZE) / 2.0f;
+
+    Rectangle dest = (Rectangle){
+        x_pos - offsetX,
+        y_pos - offsetY,
+        w, h
+    };
 
     DrawTexturePro(tex, src, dest, (Vector2){0, 0}, 0.0f, WHITE);
 }

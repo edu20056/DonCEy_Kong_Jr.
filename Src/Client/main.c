@@ -197,22 +197,34 @@ void procesarJSON(const char *json) {
         char *inicio = strchr(ent, '[');
         char *fin = strchr(ent, ']');
         if (inicio && fin && inicio < fin) {
+
             char *p = inicio;
             while (p < fin && numEntidades < MAX_ENTIDADES) {
-                char *xpos = strstr(p, "\"x\"");
-                char *ypos = strstr(p, "\"y\"");
+
+                char *xpos  = strstr(p, "\"x\"");
+                char *ypos  = strstr(p, "\"y\"");
                 char *typep = strstr(p, "\"tipo\"");
                 char *viewp = strstr(p, "\"View\"");
 
-                if (!xpos || !ypos || !typep || !viewp || xpos > fin || ypos > fin) break;
+                if (!xpos || !ypos || !typep || !viewp) break;
+                if (xpos > fin || ypos > fin || viewp > fin) break;
 
-                entidades[numEntidades].x = extraer_num(xpos + 4)* 20;
-                entidades[numEntidades].y = extraer_num(ypos + 4)* 20;
+                entidades[numEntidades].x = extraer_num(xpos + 4) * 20;
+                entidades[numEntidades].y = extraer_num(ypos + 4) * 20;
                 extraer_string(typep + 6, entidades[numEntidades].type, 20);
-                entidades[numEntidades].view = (*(viewp + 7) == 't'); // true/false
+
+                // leer booleano "true"/"false"
+                char *val = viewp + 7;
+                entidades[numEntidades].view = (*val == 't');
+
+                printf("[DEBUG] entidad[i].view = %d\n", entidades[numEntidades].view);
 
                 numEntidades++;
-                p = ypos + 4;
+
+                // Mover al final del objeto actual
+                char *endObj = strchr(viewp, '}');
+                if (!endObj) break;
+                p = endObj + 1;
             }
         }
     }
