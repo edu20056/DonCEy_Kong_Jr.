@@ -12,7 +12,7 @@ import Utils.Coords;
 
 public class Fruit extends Entity {
     private boolean active;
-    private final int points;
+    private int points;
     private final String type;
     
     /**
@@ -53,17 +53,16 @@ public class Fruit extends Entity {
 
     private static int getPointsByType(String type) {
         switch (type.toUpperCase()) {
-            case "APPLE": return 10;
-            case "BANANA": return 15;
-            case "GRAPE": return 5;
-            case "STRAWBERRY": return 20;
-            case "ORANGE": return 8;
+            case "BANANA": return 100;
+            case "STRAWBERRY": return 25;
+            case "ORANGE": return 50;
             default: return 10;
         }
     }
 
     // --- GETTERS AND SETTERS --- //
 
+    public void setPoints(int pts) { this.points = pts;  }
     public boolean isActive() { return active; }
     public void setActive(boolean active) { this.active = active; }
     public int getPoints() { return points; }

@@ -95,49 +95,6 @@ public class World {
     }
     
     /**
-     * Gets a subset of valid positions within specified bounds.
-     * Useful for limiting entity placement to certain areas of the world.
-     *
-     * @param startX starting X coordinate (inclusive)
-     * @param startY starting Y coordinate (inclusive)
-     * @param endX ending X coordinate (exclusive)
-     * @param endY ending Y coordinate (exclusive)
-     * @return List of valid vine positions within the specified bounds
-     */
-    
-    public List<Coords> getValidEntityPositionsInArea(int startX, int startY, int endX, int endY) {
-        List<Coords> positionsInArea = new ArrayList<>();
-        
-        for (Coords position : validVinePositions) {
-            int x = position.getX();
-            int y = position.getY();
-            
-            if (x >= startX && x < endX && y >= startY && y < endY) {
-                positionsInArea.add(position);
-            }
-        }
-        
-        return positionsInArea;
-    }
-    
-    /**
-     * Checks if a specific position is valid for entity placement.
-     * A position is valid if it contains a VINE tile.
-     *
-     * @param coords the coordinates to check
-     * @return true if the position is valid for entity placement, false otherwise
-     */
-    
-    public boolean isValidEntityPosition(Coords coords) {
-        if (!isWithinBounds(coords)) {
-            return false;
-        }
-        
-        TileType tile = getTile(coords);
-        return tile == TileType.VINE;
-    }
-    
-    /**
      * Gets a random valid position from all available vine positions.
      *
      * @return a random valid position, or null if no valid positions exist
@@ -160,16 +117,6 @@ public class World {
     
     public int getValidPositionCount() {
         return validVinePositions.size();
-    }
-    
-    /**
-     * Checks if there are any valid positions available for entity placement.
-     *
-     * @return true if there are valid positions, false otherwise
-     */
-    
-    public boolean hasValidPositions() {
-        return !validVinePositions.isEmpty();
     }
     
     /**

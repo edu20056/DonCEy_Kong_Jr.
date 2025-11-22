@@ -7,103 +7,91 @@ import Entities.Fruit;
 import Utils.Coords;
 import java.util.Scanner;
 import java.util.Iterator;
+import java.util.List;
 
 /**
  * Administrative controller for managing game inputs and modifying GameData.
- * Provides a clean interface for console interactions and game modifications.
  */
 public class GameAdmin {
     private Scanner scanner;
-    private boolean menuActivo;
     private GameData gameDataJ1;
     private GameData gameDataJ2;
     private boolean j1Activo;
     private boolean j2Activo;
-    private Thread menuThread;
     
-    /**
-     * Constructs a GameAdmin instance
-     */
     public GameAdmin() {
         this.scanner = new Scanner(System.in);
-        this.menuActivo = true; // Siempre activo
         this.gameDataJ1 = null;
         this.gameDataJ2 = null;
         this.j1Activo = false;
         this.j2Activo = false;
-        this.menuThread = null;
-        
-        // Iniciar el menú inmediatamente
-        startInteractiveMenu();
     }
     
-    /**
-     * Starts the interactive admin menu in a separate thread
-     */
-    public void startInteractiveMenu() {
-        // Si ya hay un hilo corriendo, no hacer nada
-        if (menuThread != null && menuThread.isAlive()) {
-            return;
+    public void mostrarMenu() {
+        boolean salir = false;
+
+        while (!salir) {
+            limpiarConsola();
+            System.out.println("=== MENÚ ADMINISTRADOR ===");
+            System.out.println("Jugadores: " + 
+                (j1Activo ? "J1🟢" : "J1🔴") + " " + 
+                (j2Activo ? "J2🟢" : "J2🔴"));
+            System.out.println("1. Agregar Cocodrilo");
+            System.out.println("2. Agregar Fruta");
+            System.out.println("3. Eliminar Fruta");
+            System.out.println("4. Mostrar Estado Actual");
+            System.out.println("5. Cambiar Nivel");
+            System.out.println("6. Resetear Jugador");
+            System.out.println("7. Salir del Menú");
+            System.out.print("Seleccione una opción: ");
+
+            try {
+                int opcion = scanner.nextInt();
+                scanner.nextLine(); // Limpiar buffer
+                
+                switch (opcion) {
+                    case 1:
+                        agregarCocodrilo();
+                        break;
+                    case 2:
+                        agregarFruta();
+                        break;
+                    case 3:
+                        eliminarFruta();
+                        break;
+                    case 4:
+                        mostrarEstadoActual();
+                        break;
+                    case 5:
+                        cambiarNivel();
+                        break;
+                    case 6:
+                        resetearJugador();
+                        break;
+                    case 7:
+                        salir = true;
+                        System.out.println("Saliendo del menú administrativo...");
+                        break;
+                    default:
+                        System.out.println("Opción inválida.");
+                        esperarEnter();
+                }
+            } catch (Exception e) {
+                System.out.println("Error: entrada inválida.");
+                scanner.nextLine();
+                esperarEnter();
+            }
         }
-        
-        this.menuActivo = true;
-        this.menuThread = new Thread(() -> {
-            mostrarMenuInteractivo();
-        });
-        this.menuThread.setDaemon(true);
-        this.menuThread.start();
-        System.out.println("🎮 Menú administrador INICIADO");
     }
     
-    /**
-     * Stops the admin menu
-     */
-    public void stopMenu() {
-        this.menuActivo = false;
-        System.out.println("🔴 Menú administrador DETENIDO");
-    }
-    
-    /**
-     * Completely restarts the admin menu
-     */
-    public void restartMenu() {
-        System.out.println("🔄 Reiniciando menú administrador...");
-        stopMenu();
-        try {
-            Thread.sleep(100);
-        } catch (InterruptedException e) {}
-        startInteractiveMenu();
-    }
-    
-    /**
-     * Checks if the admin menu is active
-     */
-    public boolean isMenuActive() {
-        return menuActivo;
-    }
-    
-    /**
-     * Updates the game data references
-     */
     public void updateGameData(GameData gameDataJ1, GameData gameDataJ2, boolean j1Activo, boolean j2Activo) {
         this.gameDataJ1 = gameDataJ1;
         this.gameDataJ2 = gameDataJ2;
         this.j1Activo = j1Activo;
         this.j2Activo = j2Activo;
-        
-        // Si el menú no está activo pero debería estarlo, reactivarlo
-        if (!menuActivo) {
-            System.out.println("🎮 Reactivando menú administrador...");
-            restartMenu();
-        }
     }
     
-    // ========== PUBLIC ADMIN METHODS ==========
-    
-    /**
-     * Displays the current game status for both players
-     */
-    public void mostrarEstadoActual() {
+    private void mostrarEstadoActual() {
         limpiarConsola();
         System.out.println("=== ESTADO ACTUAL DEL JUEGO ===");
         
@@ -117,11 +105,9 @@ public class GameAdmin {
             System.out.println("  - Frutas: " + gameDataJ1.fruits.size());
             System.out.println("  - Estado: " + (gameDataJ1.player.isDead() ? "💀 MUERTO" : "❤️ VIVO"));
             
-            // Mostrar frutas disponibles
             if (!gameDataJ1.fruits.isEmpty()) {
                 System.out.println("  - Frutas disponibles:");
-                for (int i = 0; i < gameDataJ1.fruits.size(); i++) {
-                    Fruit fruta = gameDataJ1.fruits.get(i);
+                for (Fruit fruta : gameDataJ1.fruits) {
                     System.out.println("    " + fruta.getType() + " en (" + 
                                      fruta.getPosition().getX() + "," + fruta.getPosition().getY() + ")");
                 }
@@ -140,11 +126,9 @@ public class GameAdmin {
             System.out.println("  - Frutas: " + gameDataJ2.fruits.size());
             System.out.println("  - Estado: " + (gameDataJ2.player.isDead() ? "💀 MUERTO" : "❤️ VIVO"));
             
-            // Mostrar frutas disponibles
             if (!gameDataJ2.fruits.isEmpty()) {
                 System.out.println("  - Frutas disponibles:");
-                for (int i = 0; i < gameDataJ2.fruits.size(); i++) {
-                    Fruit fruta = gameDataJ2.fruits.get(i);
+                for (Fruit fruta : gameDataJ2.fruits) {
                     System.out.println("    " + fruta.getType() + " en (" + 
                                      fruta.getPosition().getX() + "," + fruta.getPosition().getY() + ")");
                 }
@@ -153,15 +137,10 @@ public class GameAdmin {
             System.out.println("  - Esperando conexión...");
         }
         
-        System.out.println("Menú administrador: " + (menuActivo ? "🟢 ACTIVO" : "🔴 INACTIVO"));
-        
         esperarEnter();
     }
     
-    /**
-     * Adds a crocodile to the specified player's game
-     */
-    public void agregarCocodrilo() {
+    private void agregarCocodrilo() {
         limpiarConsola();
         try {
             System.out.println("--- AGREGAR COCODRILO ---");
@@ -178,11 +157,25 @@ public class GameAdmin {
                 return;
             }
             
+            GameData gameData = (jugador == 1) ? gameDataJ1 : gameDataJ2;
+            
+            // Mostrar posiciones válidas disponibles
+            List<Coords> posicionesValidas = gameData.world.getValidEntityPositions();
+            System.out.println("🌿 Posiciones válidas en lianas (" + posicionesValidas.size() + " disponibles):");
+            for (int i = 0; i < Math.min(posicionesValidas.size(), 15); i++) {
+                Coords pos = posicionesValidas.get(i);
+                System.out.println("  (" + pos.getX() + ", " + pos.getY() + ")");
+            }
+            if (posicionesValidas.size() > 15) {
+                System.out.println("  ... y " + (posicionesValidas.size() - 15) + " más");
+            }
+            
             System.out.println("Tipos de cocodrilo:");
             System.out.println("1. Rojo (se mueve verticalmente en lianas)");
             System.out.println("2. Azul (cae de las lianas)");
             System.out.print("Seleccione tipo: ");
             int tipo = scanner.nextInt();
+            scanner.nextLine();
             
             if (tipo < 1 || tipo > 2) {
                 System.out.println("❌ Tipo inválido.");
@@ -194,11 +187,29 @@ public class GameAdmin {
             int x = scanner.nextInt();
             System.out.print("Posición Y: ");
             int y = scanner.nextInt();
+            scanner.nextLine();
+            
+            // VERIFICAR SI LA POSICIÓN ES VÁLIDA (EN LIANA)
+            Coords posicion = new Coords(x, y);
+            boolean posicionValida = false;
+            for (Coords posValida : posicionesValidas) {
+                if (posValida.getX() == x && posValida.getY() == y) {
+                    posicionValida = true;
+                    break;
+                }
+            }
+            
+            if (!posicionValida) {
+                System.out.println("❌ Posición inválida. Debe estar en una liana.");
+                System.out.println("💡 Use una de las posiciones mostradas arriba.");
+                esperarEnter();
+                return;
+            }
             
             System.out.print("Velocidad (1-5, donde 1 es lento y 5 es rápido): ");
             int velocidad = scanner.nextInt();
+            scanner.nextLine();
             
-            // Validar velocidad
             if (velocidad < 1 || velocidad > 5) {
                 System.out.println("❌ Velocidad debe estar entre 1 y 5.");
                 esperarEnter();
@@ -208,13 +219,10 @@ public class GameAdmin {
             Coco nuevoCoco;
             if (tipo == 1) {
                 nuevoCoco = new RedCoco(x, y, velocidad);
-                System.out.println("✅ Cocodrilo ROJO creado");
             } else {
                 nuevoCoco = new BlueCoco(x, y, velocidad);
-                System.out.println("✅ Cocodrilo AZUL creado");
             }
             
-            // Agregar al jugador correspondiente
             if (jugador == 1 && j1Activo && gameDataJ1 != null) {
                 gameDataJ1.addCrocodile(nuevoCoco);
                 System.out.println("✅ Cocodrilo agregado al Jugador 1 en (" + x + "," + y + ") con velocidad " + velocidad);
@@ -227,15 +235,12 @@ public class GameAdmin {
             
         } catch (Exception e) {
             System.out.println("❌ Error al agregar cocodrilo: " + e.getMessage());
-            scanner.nextLine(); // Limpiar buffer
+            scanner.nextLine();
         }
         esperarEnter();
     }
     
-    /**
-     * Adds a fruit to the specified player's game
-     */
-    public void agregarFruta() {
+    private void agregarFruta() {
         limpiarConsola();
         try {
             System.out.println("--- AGREGAR FRUTA ---");
@@ -252,12 +257,48 @@ public class GameAdmin {
                 return;
             }
             
+            GameData gameData = (jugador == 1) ? gameDataJ1 : gameDataJ2;
+            
+            // Mostrar posiciones válidas y disponibles
+            List<Coords> posicionesValidas = gameData.world.getValidEntityPositions();
+            List<Coords> posicionesDisponibles = new java.util.ArrayList<>();
+            
+            // Filtrar posiciones que no tienen frutas
+            for (Coords pos : posicionesValidas) {
+                boolean ocupada = false;
+                for (Fruit fruta : gameData.fruits) {
+                    if (fruta.getPosition().getX() == pos.getX() && fruta.getPosition().getY() == pos.getY()) {
+                        ocupada = true;
+                        break;
+                    }
+                }
+                if (!ocupada) {
+                    posicionesDisponibles.add(pos);
+                }
+            }
+            
+            System.out.println("🌿 Posiciones disponibles en lianas (" + posicionesDisponibles.size() + " de " + posicionesValidas.size() + "):");
+            for (int i = 0; i < Math.min(posicionesDisponibles.size(), 15); i++) {
+                Coords pos = posicionesDisponibles.get(i);
+                System.out.println("  (" + pos.getX() + ", " + pos.getY() + ")");
+            }
+            if (posicionesDisponibles.size() > 15) {
+                System.out.println("  ... y " + (posicionesDisponibles.size() - 15) + " más");
+            }
+            
+            // Sugerir una posición aleatoria disponible
+            if (!posicionesDisponibles.isEmpty()) {
+                Coords sugerencia = posicionesDisponibles.get((int)(Math.random() * posicionesDisponibles.size()));
+                System.out.println("💡 Sugerencia: Posición disponible en (" + sugerencia.getX() + ", " + sugerencia.getY() + ")");
+            }
+            
             System.out.println("Tipos de fruta:");
             System.out.println("1. BANANA");
             System.out.println("2. STRAWBERRY"); 
             System.out.println("3. ORANGE");
             System.out.print("Seleccione tipo: ");
             int tipo = scanner.nextInt();
+            scanner.nextLine();
             
             String tipoFruta;
             switch (tipo) {
@@ -276,14 +317,50 @@ public class GameAdmin {
                     return;
             }
             
+            System.out.print("Puntos que otorga la fruta: ");
+            int pts = scanner.nextInt();
             System.out.print("Posición X: ");
             int x = scanner.nextInt();
             System.out.print("Posición Y: ");
             int y = scanner.nextInt();
+            scanner.nextLine();
+            
+            // VERIFICAR SI LA POSICIÓN ES VÁLIDA (EN LIANA)
+            Coords posicion = new Coords(x, y);
+            boolean posicionValida = false;
+            for (Coords posValida : posicionesValidas) {
+                if (posValida.getX() == x && posValida.getY() == y) {
+                    posicionValida = true;
+                    break;
+                }
+            }
+            
+            if (!posicionValida) {
+                System.out.println("❌ Posición inválida. Debe estar en una liana.");
+                System.out.println("💡 Use una de las posiciones disponibles mostradas arriba.");
+                esperarEnter();
+                return;
+            }
+            
+            // VERIFICAR SI LA POSICIÓN ESTÁ OCUPADA POR OTRA FRUTA
+            boolean posicionOcupada = false;
+            for (Fruit fruta : gameData.fruits) {
+                if (fruta.getPosition().getX() == x && fruta.getPosition().getY() == y) {
+                    posicionOcupada = true;
+                    break;
+                }
+            }
+            
+            if (posicionOcupada) {
+                System.out.println("❌ Posición ocupada. Ya hay una fruta en (" + x + ", " + y + ")");
+                System.out.println("💡 Use una posición disponible de la lista.");
+                esperarEnter();
+                return;
+            }
             
             Fruit nuevaFruta = new Fruit(x, y, tipoFruta);
-            
-            // Agregar al jugador correspondiente
+            nuevaFruta.setPoints(pts);
+
             if (jugador == 1 && j1Activo && gameDataJ1 != null) {
                 gameDataJ1.addFruit(nuevaFruta);
                 System.out.println("✅ Fruta " + tipoFruta + " agregada al Jugador 1 en (" + x + "," + y + ")");
@@ -296,15 +373,12 @@ public class GameAdmin {
             
         } catch (Exception e) {
             System.out.println("❌ Error al agregar fruta: " + e.getMessage());
-            scanner.nextLine(); // Limpiar buffer
+            scanner.nextLine();
         }
         esperarEnter();
     }
     
-    /**
-     * Removes a fruit from the specified player's game by coordinates
-     */
-    public void eliminarFruta() {
+    private void eliminarFruta() {
         limpiarConsola();
         try {
             System.out.println("--- ELIMINAR FRUTA ---");
@@ -330,7 +404,6 @@ public class GameAdmin {
                 return;
             }
             
-            // Mostrar frutas disponibles
             System.out.println("Frutas disponibles para " + nombreJugador + ":");
             for (Fruit fruta : gameData.fruits) {
                 System.out.println("  - " + fruta.getType() + " en (" + 
@@ -341,8 +414,8 @@ public class GameAdmin {
             int x = scanner.nextInt();
             System.out.print("Ingrese coordenada Y de la fruta a eliminar: ");
             int y = scanner.nextInt();
+            scanner.nextLine();
             
-            // Buscar y eliminar la fruta en las coordenadas especificadas
             boolean frutaEncontrada = false;
             Iterator<Fruit> iterator = gameData.fruits.iterator();
             while (iterator.hasNext()) {
@@ -361,15 +434,12 @@ public class GameAdmin {
             
         } catch (Exception e) {
             System.out.println("❌ Error al eliminar fruta: " + e.getMessage());
-            scanner.nextLine(); // Limpiar buffer
+            scanner.nextLine();
         }
         esperarEnter();
     }
     
-    /**
-     * Forces a level change for the specified player
-     */
-    public void cambiarNivel() {
+    private void cambiarNivel() {
         limpiarConsola();
         try {
             System.out.println("--- CAMBIAR NIVEL ---");
@@ -388,6 +458,7 @@ public class GameAdmin {
             
             System.out.print("Ingrese el nuevo nivel: ");
             int nuevoNivel = scanner.nextInt();
+            scanner.nextLine();
             
             if (nuevoNivel < 1) {
                 System.out.println("❌ El nivel debe ser mayor o igual a 1.");
@@ -412,10 +483,7 @@ public class GameAdmin {
         esperarEnter();
     }
     
-    /**
-     * Resets a player to spawn point
-     */
-    public void resetearJugador() {
+    private void resetearJugador() {
         limpiarConsola();
         try {
             System.out.println("--- RESETEAR JUGADOR ---");
@@ -449,85 +517,6 @@ public class GameAdmin {
         esperarEnter();
     }
     
-    // ========== PRIVATE METHODS ==========
-    
-    private void mostrarMenuInteractivo() {
-        System.out.println("🎮 Menú administrador ACTIVO");
-        
-        while (menuActivo) {
-            try {
-                limpiarConsola();
-                mostrarOpcionesMenu();
-                
-                // Leer input del usuario
-                System.out.print("Seleccione una opción: ");
-                if (scanner.hasNextInt()) {
-                    int opcion = scanner.nextInt();
-                    scanner.nextLine(); // Limpiar buffer
-                    procesarOpcionMenu(opcion);
-                } else {
-                    // Si no es un número, limpiar el buffer y continuar
-                    scanner.nextLine();
-                    System.out.println("❌ Por favor ingrese un número válido.");
-                    Thread.sleep(1000);
-                }
-                
-            } catch (Exception e) {
-                System.out.println("⚠️  Error en menú: " + e.getMessage());
-                try {
-                    Thread.sleep(2000);
-                } catch (InterruptedException ie) {}
-            }
-        }
-        
-        System.out.println("🔴 Menú administrador DETENIDO");
-    }
-    
-    private void mostrarOpcionesMenu() {
-        System.out.println("=== MENÚ ADMINISTRADOR ===");
-        System.out.println("Jugadores: " + 
-            (j1Activo ? "J1🟢" : "J1🔴") + " " + 
-            (j2Activo ? "J2🟢" : "J2🔴"));
-        System.out.println("1. Agregar Cocodrilo");
-        System.out.println("2. Agregar Fruta");
-        System.out.println("3. Eliminar Fruta");
-        System.out.println("4. Mostrar Estado Actual");
-        System.out.println("5. Cambiar Nivel");
-        System.out.println("6. Resetear Jugador");
-        System.out.println("7. Salir del Menú");
-        System.out.println(); // Línea en blanco para separar
-    }
-    
-    private void procesarOpcionMenu(int opcion) {
-        switch (opcion) {
-            case 1:
-                agregarCocodrilo();
-                break;
-            case 2:
-                agregarFruta();
-                break;
-            case 3:
-                eliminarFruta();
-                break;
-            case 4:
-                mostrarEstadoActual();
-                break;
-            case 5:
-                cambiarNivel();
-                break;
-            case 6:
-                resetearJugador();
-                break;
-            case 7:
-                menuActivo = false;
-                System.out.println("👋 Menú administrador desactivado.");
-                break;
-            default:
-                System.out.println("❌ Opción inválida. Por favor seleccione 1-7.");
-                esperarEnter();
-        }
-    }
-    
     private int seleccionarJugador() {
         System.out.println("Seleccionar jugador:");
         System.out.println("1. Jugador 1" + (j1Activo ? " 🟢 ACTIVO" : " 🔴 INACTIVO"));
@@ -535,6 +524,7 @@ public class GameAdmin {
         System.out.print("Seleccione jugador (0 para cancelar): ");
         
         int jugador = scanner.nextInt();
+        scanner.nextLine();
         if (jugador == 0) {
             System.out.println("Operación cancelada.");
             return 0;
@@ -562,32 +552,21 @@ public class GameAdmin {
         return j1Activo || j2Activo;
     }
     
-    /**
-     * Clears the console screen
-     */
     private void limpiarConsola() {
         System.out.print("\033[H\033[2J");
         System.out.flush();
     }
     
-    /**
-     * Waits for user to press Enter
-     */
     private void esperarEnter() {
         System.out.println("\nPresione Enter para continuar...");
         try {
             System.in.read();
-            scanner.nextLine(); // Limpiar el buffer
+            scanner.nextLine();
         } catch (Exception e) {
-            // Ignorar excepciones
         }
     }
     
-    /**
-     * Clean up resources
-     */
     public void cleanup() {
-        this.menuActivo = false;
         if (scanner != null) {
             scanner.close();
         }
