@@ -80,9 +80,9 @@ public class GameData {
         crocodiles.add(new RedCoco(11, 6, lvl));
         crocodiles.add(new BlueCoco(0, 6, lvl));
     
-        fruits.add(new Fruit(3, 4, "BANANA"));
-        fruits.add(new Fruit(7, 12, "STRAWBERRY"));
-        fruits.add(new Fruit(6, 6, "ORANGE"));
+        fruits.add(new Fruit(0, 5, "BANANA"));
+        fruits.add(new Fruit(6, 10, "STRAWBERRY"));
+        fruits.add(new Fruit(14, 15, "ORANGE"));
     }
     
     public void cleanup() {
