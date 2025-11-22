@@ -146,7 +146,6 @@ public class Player extends Entity {
     public void die() {
         if (!dead) {
             dead = true;
-            points = 0;
         }
     }
     

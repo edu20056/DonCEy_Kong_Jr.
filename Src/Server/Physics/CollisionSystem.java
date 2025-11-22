@@ -86,6 +86,7 @@ public class CollisionSystem {
 
         // Check for fatal collisions (stop if player dies)
         if (checkFatalCollisions(player, playerPos, cocodrilos)) {
+            player.die();
             return;
         }
         
@@ -100,17 +101,13 @@ public class CollisionSystem {
      */
 
     private boolean checkFatalCollisions(Player player, Coords playerPos, List<Coco> cocodrilos) {
-        // Check deadly tiles
         if (isDeadlyTile(playerPos)) {
-            player.die();
             return true;
         }
 
-        // Check cocodrilos collision
         if (cocodrilos != null) {
             for (Coco cocodrilo : cocodrilos) {
                 if (cocodrilo.isActive() && playerPos.equals(cocodrilo.getPosition())) {
-                    player.die();
                     return true;
                 }
             }

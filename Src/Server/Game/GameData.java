@@ -154,7 +154,7 @@ public class GameData {
             collisionSystem.updatePlayerState(player, crocodiles, fruits);
        
             // Check if player lives after deadly collision.
-            if (player.isDead() && player.getLives() > 0) {
+            if (player.isDead() && player.getLives() > 1) {
                 player.decLives();
                 newLevel(lvl);
                 return;

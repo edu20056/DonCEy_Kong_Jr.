@@ -62,23 +62,7 @@ public class Main {
         gameThread.setDaemon(true);
         gameThread.start();
         
-        // Limpiar pantalla y mostrar menú en el hilo principal
-        limpiarPantalla();
         gameAdmin.displayMenu();
-    }
-
-    private static void limpiarPantalla() {
-        try {
-            if (System.getProperty("os.name").contains("Windows")) {
-                new ProcessBuilder("cmd", "/c", "cls").inheritIO().start().waitFor();
-            } else {
-                new ProcessBuilder("clear").inheritIO().start().waitFor();
-            }
-        } catch (Exception e) {
-            for (int i = 0; i < 50; i++) {
-                System.out.println();
-            }
-        }
     }
 
     private static void gestionarJugadores() {
@@ -201,8 +185,8 @@ public class Main {
         if (j1Activo && gameDataJ1 != null) {
             if (gameDataJ1.player.isJumping()) {
                 gameDataJ1.player.updateJump();
-                // Verificar colisiones EN CADA FRAME del salto
-                gameDataJ1.collisionSystem.updatePlayerState(gameDataJ1.player, gameDataJ1.crocodiles, gameDataJ1.fruits);
+                // Solo actualizar física del GameData
+                gameDataJ1.updatePhysics();
             } else {
                 gameDataJ1.updatePhysics();
             }
@@ -212,8 +196,8 @@ public class Main {
         if (j2Activo && gameDataJ2 != null) {
             if (gameDataJ2.player.isJumping()) {
                 gameDataJ2.player.updateJump();
-                // Verificar colisiones EN CADA FRAME del salto
-                gameDataJ2.collisionSystem.updatePlayerState(gameDataJ2.player, gameDataJ2.crocodiles, gameDataJ2.fruits);
+                // Solo actualizar física del GameData
+                gameDataJ2.updatePhysics();
             } else {
                 gameDataJ2.updatePhysics();
             }
@@ -279,8 +263,8 @@ public class Main {
                             gameData.player.applyMovement(rightPos, true);
                         }
                     }
-                    // Ignorar el input durante el salto
                     break;
+                    
                 case 3: // Abajo
                     if (gameData.player.isOnVine()) {
                         Coords downPos = gameData.player.calculateMoveDown();
@@ -297,25 +281,26 @@ public class Main {
                             gameData.player.applyMovement(leftPos, false);
                         }
                     }
-                    // Ignorar el input durante el salto
                     break;
                      
                 case 5: // Respawn
                     if (posJug == 1) {
                         if (gameDataJ1.player.isDead()) {    
                             gameDataJ1.player.setLives(3);
+                            gameDataJ1.player.setPoints(0);
                             gameDataJ1.newLevel(1);
                         }
                     } else {
                         if (gameDataJ2.player.isDead()) {
                             gameDataJ2.player.setLives(3);
+                            gameDataJ2.player.setPoints(0);
                             gameDataJ2.newLevel(1);
                         }
                     }
                     break;
             }
             
-            gameData.collisionSystem.updatePlayerState(gameData.player, gameData.crocodiles, gameData.fruits);
+            // Las colisiones se procesan en gameData.updatePhysics(), no aquí
             
         } catch (NumberFormatException e) {
             // Invalid message format, ignore
