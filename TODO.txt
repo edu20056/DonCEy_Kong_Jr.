@@ -1,20 +1,12 @@
-POO:
--Cocodrilo --> Rojo, Verde
--Unir POO con Main actual.
+Documentación externa:
+    - Docu: Conclusiones
+    - Manual: Terminar cuando este listo el codigo, se debe crear algun mapa para identificar fácilmente donde spawnear entidades y frutas
+    - Bitácora: afinar fechas
 
-
-Flujo:
-- Se detecta jugador y se instancea sus clases jugador-[entidades]-[frutas]-map
-- Envia mapa por medio de JSON
-- Revisar colisiones jugador-[entidades] ---> Si hay colision con entidad "Game Over" ---> Si toca Donko "Win"
-- Se envia cambios en jugador (JSON)-[entidades]-[frutas] --> Esto se hace siempre (while(true)) --> Se verifica si se detectó movimiento
-ó se instancio algún objeto
-
-
-Eduardo:
-- Detectar inicio de jugador 
-- Ver envio de JSON
-
-Felipe:
-- Instancear objetos
-- Verificar colisiones / Sistema de gravedad
+- Codigo:
+    - Verificar funcionalidad
+    - Cambiar mapa para mayor facilidad
+    - Revisar tamaño sprites
+    - Revisar condición de pérdida con Mario (se comporta extraño)
+    - Revisar salto y frutas (al saltar por debajo de una fruta no la toma, sino hasta que cae)
+    - Verificar condición de avance de nivel (tal vez agregar nivel a tabla gráfica)    
