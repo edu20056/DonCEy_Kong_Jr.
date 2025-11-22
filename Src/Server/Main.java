@@ -1,5 +1,3 @@
-import java.net.Socket;
-import java.util.*;
 import Network.Server;
 import Network.AdapterJSON;
 import Entities.Player;
@@ -10,6 +8,9 @@ import Physics.GravitySystem;
 import Utils.Coords;
 import Game.GameData;
 import Game.GameAdmin;
+
+import java.net.Socket;
+import java.util.*;
 
 public class Main {
     private static final Coords SPAWN_J1 = new Coords(0, 19);
@@ -63,7 +64,7 @@ public class Main {
         
         // Limpiar pantalla y mostrar menú en el hilo principal
         limpiarPantalla();
-        gameAdmin.mostrarMenu();
+        gameAdmin.displayMenu();
     }
 
     private static void limpiarPantalla() {
@@ -196,12 +197,26 @@ public class Main {
     }
 
     private static void actualizarFisicaJugadores() {
+        // Actualizar saltos del jugador 1
         if (j1Activo && gameDataJ1 != null) {
-            gameDataJ1.updatePhysics();
+            if (gameDataJ1.player.isJumping()) {
+                gameDataJ1.player.updateJump();
+                // Verificar colisiones EN CADA FRAME del salto
+                gameDataJ1.collisionSystem.updatePlayerState(gameDataJ1.player, gameDataJ1.crocodiles, gameDataJ1.fruits);
+            } else {
+                gameDataJ1.updatePhysics();
+            }
         }
         
+        // Actualizar saltos del jugador 2
         if (j2Activo && gameDataJ2 != null) {
-            gameDataJ2.updatePhysics();
+            if (gameDataJ2.player.isJumping()) {
+                gameDataJ2.player.updateJump();
+                // Verificar colisiones EN CADA FRAME del salto
+                gameDataJ2.collisionSystem.updatePlayerState(gameDataJ2.player, gameDataJ2.crocodiles, gameDataJ2.fruits);
+            } else {
+                gameDataJ2.updatePhysics();
+            }
         }
     }
 
@@ -228,6 +243,10 @@ public class Main {
             
             switch (movimiento) {
                 case 1: // ARRIBA/SALTO
+                    if (gameData.player.isJumping()) {
+                        break; // Ignorar si ya está saltando
+                    }
+                    
                     if (gameData.player.isOnVine()) {
                         Coords newPos = gameData.player.calculateMoveUp();
                         if (gameData.collisionSystem.canMoveTo(newPos)) {
@@ -254,12 +273,14 @@ public class Main {
                     break;
 
                 case 2: // Derecha
-                    Coords rightPos = gameData.player.calculateMoveRight();
-                    if (gameData.collisionSystem.canMoveTo(rightPos)) {
-                        gameData.player.applyMovement(rightPos, true);
+                    if (!gameData.player.isJumping()) {
+                        Coords rightPos = gameData.player.calculateMoveRight();
+                        if (gameData.collisionSystem.canMoveTo(rightPos)) {
+                            gameData.player.applyMovement(rightPos, true);
+                        }
                     }
+                    // Ignorar el input durante el salto
                     break;
-                    
                 case 3: // Abajo
                     if (gameData.player.isOnVine()) {
                         Coords downPos = gameData.player.calculateMoveDown();
@@ -270,12 +291,15 @@ public class Main {
                     break;
                     
                 case 4: // Izquierda
-                    Coords leftPos = gameData.player.calculateMoveLeft();
-                    if (gameData.collisionSystem.canMoveTo(leftPos)) {
-                        gameData.player.applyMovement(leftPos, false);
+                   if (!gameData.player.isJumping()) {
+                        Coords leftPos = gameData.player.calculateMoveLeft();
+                        if (gameData.collisionSystem.canMoveTo(leftPos)) {
+                            gameData.player.applyMovement(leftPos, false);
+                        }
                     }
+                    // Ignorar el input durante el salto
                     break;
-                    
+                     
                 case 5: // Respawn
                     if (posJug == 1) {
                         if (gameDataJ1.player.isDead()) {    

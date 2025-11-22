@@ -1,570 +1,571 @@
 package Game;
 
+import java.util.Scanner;
+import java.util.Iterator;
+import java.util.List;
+
 import Entities.Coco;
 import Entities.RedCoco;
 import Entities.BlueCoco;
 import Entities.Fruit;
 import Utils.Coords;
-import java.util.Scanner;
-import java.util.Iterator;
-import java.util.List;
 
 /**
  * Administrative controller for managing game inputs and modifying GameData.
+ * Game administrators to manipulate game elements such as: 
+ * crocodiles and fruits...
  */
+
 public class GameAdmin {
     private Scanner scanner;
-    private GameData gameDataJ1;
-    private GameData gameDataJ2;
-    private boolean j1Activo;
-    private boolean j2Activo;
-    
+    private GameData player1GameData;
+    private GameData player2GameData;
+    private boolean player1Active;
+    private boolean player2Active;
+
     public GameAdmin() {
         this.scanner = new Scanner(System.in);
-        this.gameDataJ1 = null;
-        this.gameDataJ2 = null;
-        this.j1Activo = false;
-        this.j2Activo = false;
+        this.player1GameData = null;
+        this.player2GameData = null;
+        this.player1Active = false;
+        this.player2Active = false;
     }
     
-    public void mostrarMenu() {
-        boolean salir = false;
+    /**
+     * Displays the main administrative menu and handles user input.
+     * The menu runs in a loop until the user chooses to exit.
+     */
 
-        while (!salir) {
-            limpiarConsola();
-            System.out.println("=== MENÚ ADMINISTRADOR ===");
-            System.out.println("Jugadores: " + 
-                (j1Activo ? "J1🟢" : "J1🔴") + " " + 
-                (j2Activo ? "J2🟢" : "J2🔴"));
-            System.out.println("1. Agregar Cocodrilo");
-            System.out.println("2. Agregar Fruta");
-            System.out.println("3. Eliminar Fruta");
-            System.out.println("4. Mostrar Estado Actual");
-            System.out.println("5. Cambiar Nivel");
-            System.out.println("6. Resetear Jugador");
-            System.out.println("7. Salir del Menú");
-            System.out.print("Seleccione una opción: ");
+    public void displayMenu() {
+        boolean exit = false;
+
+        while (!exit) {
+            clearConsole();
+
+            System.out.println("┌─────────────────────────────────────────────┐");
+            System.out.println("│               DonCEy Kong Jr                │");
+            System.out.println("└─────────────────────────────────────────────┘");
+            System.out.println("[1] Agregar Cocodrilo");
+            System.out.println("[2] Agregar Fruta");
+            System.out.println("[3] Remover Fruta");
+            System.out.println("[4] Mostrar Lianas Disponibles");
+            System.out.println("[5] Terminar");
+            System.out.println("└─────────────────────────────────────────────┘");
+            
+            System.out.print("\n[DonkeyKongJr@Admin ~]$ ");
 
             try {
-                int opcion = scanner.nextInt();
-                scanner.nextLine(); // Limpiar buffer
+                int option = scanner.nextInt();
+                scanner.nextLine();
                 
-                switch (opcion) {
-                    case 1:
-                        agregarCocodrilo();
-                        break;
-                    case 2:
-                        agregarFruta();
-                        break;
-                    case 3:
-                        eliminarFruta();
-                        break;
-                    case 4:
-                        mostrarEstadoActual();
-                        break;
-                    case 5:
-                        cambiarNivel();
-                        break;
-                    case 6:
-                        resetearJugador();
-                        break;
-                    case 7:
-                        salir = true;
-                        System.out.println("Saliendo del menú administrativo...");
-                        break;
+                switch (option) {
+                    case 1: addCrocodile(); break;
+                    case 2: addFruit(); break;
+                    case 3: removeFruit(); break;
+                    case 4: showAvailableVines(); break;
+                    case 5: exit = true; break;
                     default:
-                        System.out.println("Opción inválida.");
-                        esperarEnter();
+                        System.out.println("(¬_¬) Opción inválida...");
+                        waitForEnter();
                 }
             } catch (Exception e) {
-                System.out.println("Error: entrada inválida.");
+                System.out.println("(¬_¬) Opción inválida...");
                 scanner.nextLine();
-                esperarEnter();
+                waitForEnter();
             }
         }
     }
     
-    public void updateGameData(GameData gameDataJ1, GameData gameDataJ2, boolean j1Activo, boolean j2Activo) {
-        this.gameDataJ1 = gameDataJ1;
-        this.gameDataJ2 = gameDataJ2;
-        this.j1Activo = j1Activo;
-        this.j2Activo = j2Activo;
+    /**
+     * Updates the game data references and player activity status.
+     * This method should be called when player connections change or
+     * when new game data becomes available.
+     *
+     * @param player1GameData the game data for player 1
+     * @param player2GameData the game data for player 2
+     * @param player1Active whether player 1 is currently active
+     * @param player2Active whether player 2 is currently active
+     */
+
+    public void updateGameData(GameData player1GameData, GameData player2GameData, 
+                              boolean player1Active, boolean player2Active) {
+        this.player1GameData = player1GameData;
+        this.player2GameData = player2GameData;
+        this.player1Active = player1Active;
+        this.player2Active = player2Active;
     }
     
-    private void mostrarEstadoActual() {
-        limpiarConsola();
-        System.out.println("=== ESTADO ACTUAL DEL JUEGO ===");
-        
-        System.out.println("JUGADOR 1: " + (j1Activo ? "🟢 ACTIVO" : "🔴 INACTIVO"));
-        if (j1Activo && gameDataJ1 != null) {
-            System.out.println("  - Nivel: " + gameDataJ1.lvl);
-            System.out.println("  - Posición: (" + gameDataJ1.player.getPosition().getX() + 
-                             "," + gameDataJ1.player.getPosition().getY() + ")");
-            System.out.println("  - Puntos: " + gameDataJ1.player.getPoints());
-            System.out.println("  - Cocodrilos: " + gameDataJ1.crocodiles.size());
-            System.out.println("  - Frutas: " + gameDataJ1.fruits.size());
-            System.out.println("  - Estado: " + (gameDataJ1.player.isDead() ? "💀 MUERTO" : "❤️ VIVO"));
-            
-            if (!gameDataJ1.fruits.isEmpty()) {
-                System.out.println("  - Frutas disponibles:");
-                for (Fruit fruta : gameDataJ1.fruits) {
-                    System.out.println("    " + fruta.getType() + " en (" + 
-                                     fruta.getPosition().getX() + "," + fruta.getPosition().getY() + ")");
-                }
-            }
-        } else {
-            System.out.println("  - Esperando conexión...");
-        }
-        
-        System.out.println("JUGADOR 2: " + (j2Activo ? "🟢 ACTIVO" : "🔴 INACTIVO"));
-        if (j2Activo && gameDataJ2 != null) {
-            System.out.println("  - Nivel: " + gameDataJ2.lvl);
-            System.out.println("  - Posición: (" + gameDataJ2.player.getPosition().getX() + 
-                             "," + gameDataJ2.player.getPosition().getY() + ")");
-            System.out.println("  - Puntos: " + gameDataJ2.player.getPoints());
-            System.out.println("  - Cocodrilos: " + gameDataJ2.crocodiles.size());
-            System.out.println("  - Frutas: " + gameDataJ2.fruits.size());
-            System.out.println("  - Estado: " + (gameDataJ2.player.isDead() ? "💀 MUERTO" : "❤️ VIVO"));
-            
-            if (!gameDataJ2.fruits.isEmpty()) {
-                System.out.println("  - Frutas disponibles:");
-                for (Fruit fruta : gameDataJ2.fruits) {
-                    System.out.println("    " + fruta.getType() + " en (" + 
-                                     fruta.getPosition().getX() + "," + fruta.getPosition().getY() + ")");
-                }
-            }
-        } else {
-            System.out.println("  - Esperando conexión...");
-        }
-        
-        esperarEnter();
-    }
-    
-    private void agregarCocodrilo() {
-        limpiarConsola();
+    /**
+     * Displays all available vine positions for the selected player.
+     */
+
+    private void showAvailableVines() {
+        clearConsole();
         try {
-            System.out.println("--- AGREGAR COCODRILO ---");
+            System.out.println("┌─────────────────────────────────────────────┐");
+            System.out.println("│               DonCEy Kong Jr                │");
+            System.out.println("└─────────────────────────────────────────────┘");
+            System.out.println("───────────── LIANAS DISPONIBLES ─────────────");
             
-            if (!hayJugadoresActivos()) {
-                System.out.println("❌ No hay jugadores activos para agregar cocodrilos.");
-                esperarEnter();
+            if (!arePlayersActive()) {
+                System.out.println("(✖╭╮✖) No hay jugadores activos...");
+                waitForEnter();
                 return;
             }
             
-            int jugador = seleccionarJugador();
-            if (jugador == 0) {
-                esperarEnter();
+            int player = selectPlayer();
+            if (player == 0) {
+                waitForEnter();
                 return;
             }
+
+            GameData gameData = (player == 1) ? player1GameData : player2GameData;
+            String playerName = (player == 1) ? "Jugador 1" : "Jugador 2";
             
-            GameData gameData = (jugador == 1) ? gameDataJ1 : gameDataJ2;
+            List<Coords> validPositions = gameData.world.getValidEntityPositions();
+            List<Coords> availablePositions = new java.util.ArrayList<>();
             
-            // Mostrar posiciones válidas disponibles
-            List<Coords> posicionesValidas = gameData.world.getValidEntityPositions();
-            System.out.println("🌿 Posiciones válidas en lianas (" + posicionesValidas.size() + " disponibles):");
-            for (int i = 0; i < Math.min(posicionesValidas.size(), 15); i++) {
-                Coords pos = posicionesValidas.get(i);
-                System.out.println("  (" + pos.getX() + ", " + pos.getY() + ")");
-            }
-            if (posicionesValidas.size() > 15) {
-                System.out.println("  ... y " + (posicionesValidas.size() - 15) + " más");
-            }
-            
-            System.out.println("Tipos de cocodrilo:");
-            System.out.println("1. Rojo (se mueve verticalmente en lianas)");
-            System.out.println("2. Azul (cae de las lianas)");
-            System.out.print("Seleccione tipo: ");
-            int tipo = scanner.nextInt();
-            scanner.nextLine();
-            
-            if (tipo < 1 || tipo > 2) {
-                System.out.println("❌ Tipo inválido.");
-                esperarEnter();
-                return;
-            }
-            
-            System.out.print("Posición X: ");
-            int x = scanner.nextInt();
-            System.out.print("Posición Y: ");
-            int y = scanner.nextInt();
-            scanner.nextLine();
-            
-            // VERIFICAR SI LA POSICIÓN ES VÁLIDA (EN LIANA)
-            Coords posicion = new Coords(x, y);
-            boolean posicionValida = false;
-            for (Coords posValida : posicionesValidas) {
-                if (posValida.getX() == x && posValida.getY() == y) {
-                    posicionValida = true;
-                    break;
-                }
-            }
-            
-            if (!posicionValida) {
-                System.out.println("❌ Posición inválida. Debe estar en una liana.");
-                System.out.println("💡 Use una de las posiciones mostradas arriba.");
-                esperarEnter();
-                return;
-            }
-            
-            System.out.print("Velocidad (1-5, donde 1 es lento y 5 es rápido): ");
-            int velocidad = scanner.nextInt();
-            scanner.nextLine();
-            
-            if (velocidad < 1 || velocidad > 5) {
-                System.out.println("❌ Velocidad debe estar entre 1 y 5.");
-                esperarEnter();
-                return;
-            }
-            
-            Coco nuevoCoco;
-            if (tipo == 1) {
-                nuevoCoco = new RedCoco(x, y, velocidad);
-            } else {
-                nuevoCoco = new BlueCoco(x, y, velocidad);
-            }
-            
-            if (jugador == 1 && j1Activo && gameDataJ1 != null) {
-                gameDataJ1.addCrocodile(nuevoCoco);
-                System.out.println("✅ Cocodrilo agregado al Jugador 1 en (" + x + "," + y + ") con velocidad " + velocidad);
-            } else if (jugador == 2 && j2Activo && gameDataJ2 != null) {
-                gameDataJ2.addCrocodile(nuevoCoco);
-                System.out.println("✅ Cocodrilo agregado al Jugador 2 en (" + x + "," + y + ") con velocidad " + velocidad);
-            } else {
-                System.out.println("❌ No se pudo agregar el cocodrilo - Jugador no activo");
-            }
-            
-        } catch (Exception e) {
-            System.out.println("❌ Error al agregar cocodrilo: " + e.getMessage());
-            scanner.nextLine();
-        }
-        esperarEnter();
-    }
-    
-    private void agregarFruta() {
-        limpiarConsola();
-        try {
-            System.out.println("--- AGREGAR FRUTA ---");
-            
-            if (!hayJugadoresActivos()) {
-                System.out.println("❌ No hay jugadores activos para agregar frutas.");
-                esperarEnter();
-                return;
-            }
-            
-            int jugador = seleccionarJugador();
-            if (jugador == 0) {
-                esperarEnter();
-                return;
-            }
-            
-            GameData gameData = (jugador == 1) ? gameDataJ1 : gameDataJ2;
-            
-            // Mostrar posiciones válidas y disponibles
-            List<Coords> posicionesValidas = gameData.world.getValidEntityPositions();
-            List<Coords> posicionesDisponibles = new java.util.ArrayList<>();
-            
-            // Filtrar posiciones que no tienen frutas
-            for (Coords pos : posicionesValidas) {
-                boolean ocupada = false;
-                for (Fruit fruta : gameData.fruits) {
-                    if (fruta.getPosition().getX() == pos.getX() && fruta.getPosition().getY() == pos.getY()) {
-                        ocupada = true;
+            for (Coords pos : validPositions) {
+                boolean occupied = false;
+                
+                for (Fruit fruit : gameData.fruits) {
+                    if (fruit.getPosition().getX() == pos.getX() && fruit.getPosition().getY() == pos.getY()) {
+                        occupied = true;
                         break;
                     }
                 }
-                if (!ocupada) {
-                    posicionesDisponibles.add(pos);
+                
+                if (!occupied) {
+                    availablePositions.add(pos);
                 }
             }
             
-            System.out.println("🌿 Posiciones disponibles en lianas (" + posicionesDisponibles.size() + " de " + posicionesValidas.size() + "):");
-            for (int i = 0; i < Math.min(posicionesDisponibles.size(), 15); i++) {
-                Coords pos = posicionesDisponibles.get(i);
-                System.out.println("  (" + pos.getX() + ", " + pos.getY() + ")");
+            System.out.println("\n✅ Lianas Disponibles:");
+            printPositionsGrid(availablePositions);
+        
+        } catch (Exception e) {
+            System.out.println("(⊙_⊙ ✖ ) Oops... Sucedió un error!!!");
+            System.out.println("!Error: " + e.getMessage());
+            scanner.nextLine();
+        }
+        waitForEnter();
+    }
+    
+    /**
+     * Prints positions in a organized grid format for better readability.
+     * 
+     * @param positions list of coordinates to display
+     */
+
+    private void printPositionsGrid(List<Coords> positions) {
+        if (positions.isEmpty()) {
+            System.out.println("(✖╭╮✖) No hay posiciones disponibles...");
+            return;
+        }
+        
+        positions.sort((a, b) -> {
+            if (a.getY() != b.getY()) {
+                return Integer.compare(a.getY(), b.getY());
             }
-            if (posicionesDisponibles.size() > 15) {
-                System.out.println("  ... y " + (posicionesDisponibles.size() - 15) + " más");
+            return Integer.compare(a.getX(), b.getX());
+        });
+        
+        int maxY = positions.stream().mapToInt(Coords::getY).max().orElse(0);
+        int yWidth = String.valueOf(maxY).length();
+        
+        System.out.println("\n  " + " ".repeat(yWidth) + "Y │ X disponibles");
+        System.out.println("   " + "─".repeat(yWidth) + "─┼────────────────");
+        
+        int currentY = -1;
+        
+        for (Coords pos : positions) {
+            if (pos.getY() != currentY) {
+                if (currentY != -1) System.out.println();
+                System.out.printf("   %-" + yWidth + "d │ ", pos.getY());
+                currentY = pos.getY();
+            }
+            System.out.printf("%2d ", pos.getX());
+        }
+        System.out.println();
+    }
+
+    /**
+     * Adds a crocodile to the selected player's game world.
+     * Prompts for crocodile type, position, and speed.
+     * Validates that the position is on a valid vine and within bounds.
+     */
+
+    private void addCrocodile() {
+        clearConsole();
+        try {
+            System.out.println("┌─────────────────────────────────────────────┐");
+            System.out.println("│               DonCEy Kong Jr                │");
+            System.out.println("└─────────────────────────────────────────────┘");
+            System.out.println("────────────── AGREGAR COCODRILO ──────────────");
+            
+            if (!arePlayersActive()) {
+                System.out.println("(✖╭╮✖) No hay jugadores activos...");
+                waitForEnter();
+                return;
             }
             
-            // Sugerir una posición aleatoria disponible
-            if (!posicionesDisponibles.isEmpty()) {
-                Coords sugerencia = posicionesDisponibles.get((int)(Math.random() * posicionesDisponibles.size()));
-                System.out.println("💡 Sugerencia: Posición disponible en (" + sugerencia.getX() + ", " + sugerencia.getY() + ")");
+            int player = selectPlayer();
+            if (player == 0) {
+                waitForEnter();
+                return;
+            }
+
+            GameData gameData = (player == 1) ? player1GameData : player2GameData;
+
+            List<Coords> validPositions = gameData.world.getValidEntityPositions();
+
+            System.out.println("\nSeleccione el tipo de Cocodrilo:");
+            System.out.println("[1] Rojo");
+            System.out.println("[2] Azul");
+            
+            System.out.print("\n[DonkeyKongJr@Admin ~]$ ");
+            
+            int type = scanner.nextInt();
+            scanner.nextLine();
+            if (type < 1 || type > 2) {
+                System.out.println("(¬_¬) Opción inválida...");
+                waitForEnter();
+                return;
             }
             
-            System.out.println("Tipos de fruta:");
-            System.out.println("1. BANANA");
-            System.out.println("2. STRAWBERRY"); 
-            System.out.println("3. ORANGE");
-            System.out.print("Seleccione tipo: ");
-            int tipo = scanner.nextInt();
+            System.out.print("\nCordenada X     > ");
+            int x = scanner.nextInt();
+            System.out.print("Cordenada Y     > ");
+            int y = scanner.nextInt();
+            scanner.nextLine();
+            System.out.print("Velocidad (1-5) > ");
+            int speed = scanner.nextInt();
             scanner.nextLine();
             
-            String tipoFruta;
-            switch (tipo) {
-                case 1: 
-                    tipoFruta = "BANANA"; 
+            Coords position = new Coords(x, y);
+            boolean validPosition = false;
+            for (Coords validPos : validPositions) {
+                if (validPos.getX() == x && validPos.getY() == y) {
+                    validPosition = true;
                     break;
-                case 2: 
-                    tipoFruta = "STRAWBERRY"; 
-                    break;
-                case 3: 
-                    tipoFruta = "ORANGE"; 
-                    break;
+                }
+            }
+            
+            if (!validPosition) {
+                System.out.println("(¬_¬) Posición inválida...");
+                System.out.println("(⚠︎  Debe de ser una liana)");
+                System.out.println("(💡 Use la opción 4 para ver lianas disponibles)");
+                waitForEnter();
+                return;
+            }
+            
+            if (speed < 1 || speed > 5) {
+                System.out.println("(¬_¬) Posición inválida...");
+                System.out.println("(⚠︎  La velocidad debe de estar dentro del rango)");
+                waitForEnter();
+                return;
+            }
+            
+            Coco newCrocodile;
+            if (type == 1) { newCrocodile = new RedCoco(x, y, speed);
+            } else { newCrocodile = new BlueCoco(x, y, speed); }
+            
+            if (player == 1 && player1Active && player1GameData != null) {
+                player1GameData.addCrocodile(newCrocodile);
+                System.out.println("(-‿◦) Operación exitosa"); 
+            } else if (player == 2 && player2Active && player2GameData != null) {
+                player2GameData.addCrocodile(newCrocodile);
+                System.out.println("(-‿◦) Operación exitosa"); 
+            } else {
+                System.out.println("(⊙_⊙ ✖ ) Oops... Sucedió un error!!!");
+            }
+            
+        } catch (Exception e) {
+            System.out.println("(⊙_⊙ ✖ ) Oops... Sucedió un error!!!");
+            System.out.println("!Error: " + e.getMessage());
+            scanner.nextLine();
+        }
+        waitForEnter();
+    }
+    
+    /**
+     * Adds a fruit to the selected player's game world.
+     * Prompts for fruit type, position, and point value.
+     * Validates position availability and displays suggested positions.
+     */
+
+    private void addFruit() {
+        clearConsole();
+        try {
+            System.out.println("┌─────────────────────────────────────────────┐");
+            System.out.println("│               DonCEy Kong Jr                │");
+            System.out.println("└─────────────────────────────────────────────┘");
+            System.out.println("──────────────── AGREGAR FRUTA ────────────────");
+            
+            if (!arePlayersActive()) {
+                System.out.println("(✖╭╮✖) No hay jugadores activos...");
+                waitForEnter();
+                return;
+            }
+            
+            int player = selectPlayer();
+            if (player == 0) {
+                waitForEnter();
+                return;
+            }
+
+            GameData gameData = (player == 1) ? player1GameData : player2GameData;
+            List<Coords> validPositions = gameData.world.getValidEntityPositions();
+            List<Coords> availablePositions = new java.util.ArrayList<>();
+            
+            for (Coords pos : validPositions) {
+                boolean occupied = false;
+                for (Fruit fruit : gameData.fruits) {
+                    if (fruit.getPosition().getX() == pos.getX() && fruit.getPosition().getY() == pos.getY()) {
+                        occupied = true;
+                        break;
+                    }
+                }
+                if (!occupied) {
+                    availablePositions.add(pos);
+                }
+            }
+
+            System.out.println("\nSeleccione el tipo de Fruta:");
+            System.out.println("[1] BANANA");
+            System.out.println("[2] FRESA");
+            System.out.println("[3] NARANJA");
+            
+            System.out.print("\n[DonkeyKongJr@Admin ~]$ ");
+            
+            int type = scanner.nextInt();
+            scanner.nextLine();
+            
+            String fruitType;
+            switch (type) {
+                case 1: fruitType = "BANANA"; break;
+                case 2: fruitType = "STRAWBERRY"; break;
+                case 3: fruitType = "ORANGE"; break;
                 default:
-                    System.out.println("❌ Tipo inválido.");
-                    esperarEnter();
+                    System.out.println("(¬_¬) Opción inválida...");
+                    waitForEnter();
                     return;
             }
             
-            System.out.print("Puntos que otorga la fruta: ");
-            int pts = scanner.nextInt();
-            System.out.print("Posición X: ");
+            System.out.print("\nCordenada X     > ");
             int x = scanner.nextInt();
-            System.out.print("Posición Y: ");
+            System.out.print("Cordenada Y     > ");
             int y = scanner.nextInt();
             scanner.nextLine();
+            System.out.print("Puntos          > ");
+            int points = scanner.nextInt();
+            scanner.nextLine();
             
-            // VERIFICAR SI LA POSICIÓN ES VÁLIDA (EN LIANA)
-            Coords posicion = new Coords(x, y);
-            boolean posicionValida = false;
-            for (Coords posValida : posicionesValidas) {
-                if (posValida.getX() == x && posValida.getY() == y) {
-                    posicionValida = true;
+            Coords position = new Coords(x, y);
+            boolean validPosition = false;
+            for (Coords validPos : validPositions) {
+                if (validPos.getX() == x && validPos.getY() == y) {
+                    validPosition = true;
                     break;
                 }
             }
             
-            if (!posicionValida) {
-                System.out.println("❌ Posición inválida. Debe estar en una liana.");
-                System.out.println("💡 Use una de las posiciones disponibles mostradas arriba.");
-                esperarEnter();
+            if (!validPosition) {
+                System.out.println("(¬_¬) Posición inválida...");
+                System.out.println("(⚠︎  Debe de ser una liana)");
+                System.out.println("(💡 Use la opción 4 para ver lianas disponibles)");
+                waitForEnter();
                 return;
             }
             
-            // VERIFICAR SI LA POSICIÓN ESTÁ OCUPADA POR OTRA FRUTA
-            boolean posicionOcupada = false;
-            for (Fruit fruta : gameData.fruits) {
-                if (fruta.getPosition().getX() == x && fruta.getPosition().getY() == y) {
-                    posicionOcupada = true;
+            boolean positionOccupied = false;
+            for (Fruit fruit : gameData.fruits) {
+                if (fruit.getPosition().getX() == x && fruit.getPosition().getY() == y) {
+                    positionOccupied = true;
                     break;
                 }
             }
             
-            if (posicionOcupada) {
-                System.out.println("❌ Posición ocupada. Ya hay una fruta en (" + x + ", " + y + ")");
-                System.out.println("💡 Use una posición disponible de la lista.");
-                esperarEnter();
+            if (positionOccupied) {
+                System.out.println("(¬_¬) Posición ocupada...");
+                System.out.println("(⚠︎  Ya existe una fruta en esta posición)");
+                waitForEnter();
                 return;
             }
             
-            Fruit nuevaFruta = new Fruit(x, y, tipoFruta);
-            nuevaFruta.setPoints(pts);
+            if (points < 1) {
+                System.out.println("(¬_¬) Puntos inválidos...");
+                System.out.println("(⚠︎  Los puntos deben ser mayores a 0)");
+                waitForEnter();
+                return;
+            }
+            
+            Fruit newFruit = new Fruit(x, y, fruitType);
+            newFruit.setPoints(points);
 
-            if (jugador == 1 && j1Activo && gameDataJ1 != null) {
-                gameDataJ1.addFruit(nuevaFruta);
-                System.out.println("✅ Fruta " + tipoFruta + " agregada al Jugador 1 en (" + x + "," + y + ")");
-            } else if (jugador == 2 && j2Activo && gameDataJ2 != null) {
-                gameDataJ2.addFruit(nuevaFruta);
-                System.out.println("✅ Fruta " + tipoFruta + " agregada al Jugador 2 en (" + x + "," + y + ")");
+            if (player == 1 && player1Active && player1GameData != null) {
+                player1GameData.addFruit(newFruit);
+                System.out.println("(-‿◦) Operación exitosa"); 
+            } else if (player == 2 && player2Active && player2GameData != null) {
+                player2GameData.addFruit(newFruit);
+                System.out.println("(-‿◦) Operación exitosa"); 
             } else {
-                System.out.println("❌ No se pudo agregar la fruta - Jugador no activo");
+                System.out.println("(⊙_⊙ ✖ ) Oops... Sucedió un error!!!");
             }
             
         } catch (Exception e) {
-            System.out.println("❌ Error al agregar fruta: " + e.getMessage());
+            System.out.println("(⊙_⊙ ✖ ) Oops... Sucedió un error!!!");
+            System.out.println("!Error: " + e.getMessage());
             scanner.nextLine();
         }
-        esperarEnter();
+        waitForEnter();
     }
-    
-    private void eliminarFruta() {
-        limpiarConsola();
+
+    /**
+     * Removes a fruit from the selected player's game world.
+     * Displays available fruits and prompts for coordinates to remove.
+     */
+
+    private void removeFruit() {
+        clearConsole();
         try {
-            System.out.println("--- ELIMINAR FRUTA ---");
+            System.out.println("┌─────────────────────────────────────────────┐");
+            System.out.println("│               DonCEy Kong Jr                │");
+            System.out.println("└─────────────────────────────────────────────┘");
+            System.out.println("──────────────── REMOVER FRUTA ────────────────");
             
-            if (!hayJugadoresActivos()) {
-                System.out.println("❌ No hay jugadores activos para eliminar frutas.");
-                esperarEnter();
+            if (!arePlayersActive()) {
+                System.out.println("(✖╭╮✖) No hay jugadores activos...");
+                waitForEnter();
                 return;
             }
             
-            int jugador = seleccionarJugador();
-            if (jugador == 0) {
-                esperarEnter();
+            int player = selectPlayer();
+            if (player == 0) {
+                waitForEnter();
                 return;
             }
             
-            GameData gameData = (jugador == 1) ? gameDataJ1 : gameDataJ2;
-            String nombreJugador = (jugador == 1) ? "Jugador 1" : "Jugador 2";
+            GameData gameData = (player == 1) ? player1GameData : player2GameData;
+            String playerName = (player == 1) ? "Jugador 1" : "Jugador 2";
             
             if (gameData == null || gameData.fruits.isEmpty()) {
-                System.out.println("❌ " + nombreJugador + " no tiene frutas para eliminar.");
-                esperarEnter();
+                System.out.println("(◕‿◕) No hay frutas para remover...");
+                waitForEnter();
                 return;
             }
             
-            System.out.println("Frutas disponibles para " + nombreJugador + ":");
-            for (Fruit fruta : gameData.fruits) {
-                System.out.println("  - " + fruta.getType() + " en (" + 
-                                 fruta.getPosition().getX() + "," + fruta.getPosition().getY() + ")");
+            System.out.println("\nFrutas disponibles para " + playerName + ":");
+            int index = 1;
+            for (Fruit fruit : gameData.fruits) {
+                System.out.println(fruit.getType() + " (" + 
+                                 fruit.getPosition().getX() + "," + fruit.getPosition().getY() + ")");
+                index++;
             }
             
-            System.out.print("Ingrese coordenada X de la fruta a eliminar: ");
+            System.out.print("\nCordenada X     > ");
             int x = scanner.nextInt();
-            System.out.print("Ingrese coordenada Y de la fruta a eliminar: ");
+            System.out.print("Cordenada Y     > ");
             int y = scanner.nextInt();
             scanner.nextLine();
             
-            boolean frutaEncontrada = false;
+            boolean fruitFound = false;
             Iterator<Fruit> iterator = gameData.fruits.iterator();
             while (iterator.hasNext()) {
-                Fruit fruta = iterator.next();
-                if (fruta.getPosition().getX() == x && fruta.getPosition().getY() == y) {
+                Fruit fruit = iterator.next();
+                if (fruit.getPosition().getX() == x && fruit.getPosition().getY() == y) {
                     iterator.remove();
-                    System.out.println("✅ Fruta " + fruta.getType() + " eliminada de " + nombreJugador + " en (" + x + "," + y + ")");
-                    frutaEncontrada = true;
+                    System.out.println("(-‿◦) Fruta " + fruit.getType() + " removida de " + playerName + " en (" + x + "," + y + ")");
+                    fruitFound = true;
                     break;
                 }
             }
             
-            if (!frutaEncontrada) {
-                System.out.println("❌ No se encontró ninguna fruta en las coordenadas (" + x + "," + y + ") para " + nombreJugador);
+            if (!fruitFound) {
+                System.out.println("(¬_¬) Fruta no encontrada...");
+                System.out.println("(⚠︎  No existe fruta en las coordenadas especificadas)");
             }
             
         } catch (Exception e) {
-            System.out.println("❌ Error al eliminar fruta: " + e.getMessage());
+            System.out.println("(⊙_⊙ ✖ ) Oops... Sucedió un error!!!");
+            System.out.println("!Error: " + e.getMessage());
             scanner.nextLine();
         }
-        esperarEnter();
+        waitForEnter();
     }
-    
-    private void cambiarNivel() {
-        limpiarConsola();
-        try {
-            System.out.println("--- CAMBIAR NIVEL ---");
-            
-            if (!hayJugadoresActivos()) {
-                System.out.println("❌ No hay jugadores activos para cambiar nivel.");
-                esperarEnter();
-                return;
-            }
-            
-            int jugador = seleccionarJugador();
-            if (jugador == 0) {
-                esperarEnter();
-                return;
-            }
-            
-            System.out.print("Ingrese el nuevo nivel: ");
-            int nuevoNivel = scanner.nextInt();
-            scanner.nextLine();
-            
-            if (nuevoNivel < 1) {
-                System.out.println("❌ El nivel debe ser mayor o igual a 1.");
-                esperarEnter();
-                return;
-            }
-            
-            if (jugador == 1 && j1Activo && gameDataJ1 != null) {
-                gameDataJ1.lvl = nuevoNivel;
-                System.out.println("✅ Jugador 1 cambiado al nivel " + nuevoNivel);
-            } else if (jugador == 2 && j2Activo && gameDataJ2 != null) {
-                gameDataJ2.lvl = nuevoNivel;
-                System.out.println("✅ Jugador 2 cambiado al nivel " + nuevoNivel);
-            } else {
-                System.out.println("❌ No se pudo cambiar el nivel - Jugador no activo");
-            }
-            
-        } catch (Exception e) {
-            System.out.println("❌ Error al cambiar nivel: " + e.getMessage());
-            scanner.nextLine();
-        }
-        esperarEnter();
-    }
-    
-    private void resetearJugador() {
-        limpiarConsola();
-        try {
-            System.out.println("--- RESETEAR JUGADOR ---");
-            
-            if (!hayJugadoresActivos()) {
-                System.out.println("❌ No hay jugadores activos para resetear.");
-                esperarEnter();
-                return;
-            }
-            
-            int jugador = seleccionarJugador();
-            if (jugador == 0) {
-                esperarEnter();
-                return;
-            }
-            
-            if (jugador == 1 && j1Activo && gameDataJ1 != null) {
-                gameDataJ1.player.respawn(gameDataJ1.spawnPoint);
-                System.out.println("✅ Jugador 1 reseteado a posición inicial");
-            } else if (jugador == 2 && j2Activo && gameDataJ2 != null) {
-                gameDataJ2.player.respawn(gameDataJ2.spawnPoint);
-                System.out.println("✅ Jugador 2 reseteado a posición inicial");
-            } else {
-                System.out.println("❌ No se pudo resetear - Jugador no activo");
-            }
-            
-        } catch (Exception e) {
-            System.out.println("❌ Error al resetear jugador: " + e.getMessage());
-            scanner.nextLine();
-        }
-        esperarEnter();
-    }
-    
-    private int seleccionarJugador() {
-        System.out.println("Seleccionar jugador:");
-        System.out.println("1. Jugador 1" + (j1Activo ? " 🟢 ACTIVO" : " 🔴 INACTIVO"));
-        System.out.println("2. Jugador 2" + (j2Activo ? " 🟢 ACTIVO" : " 🔴 INACTIVO"));
-        System.out.print("Seleccione jugador (0 para cancelar): ");
+
+    /**
+     * Prompts the user to select a player for administrative actions.
+     * 
+     * @return the selected player number (1 or 2), or 0 if canceled
+     */
+
+    private int selectPlayer() {
+        System.out.println("Seleccionar Jugador:");
+        System.out.println("1. Jugador 1" + (player1Active ? " (•‿•)" : " (_ _ ) Zzz"));
+        System.out.println("2. Jugador 2" + (player2Active ? " (•‿•)" : " (_ _ ) Zzz"));
         
-        int jugador = scanner.nextInt();
+        System.out.print("\n[DonkeyKongJr@Admin ~]$ ");
+        
+        int player = scanner.nextInt();
         scanner.nextLine();
-        if (jugador == 0) {
-            System.out.println("Operación cancelada.");
+        if (player == 0) { return 0; }
+        
+        if (player == 1 && !player1Active) {
+            System.out.println("( •̀ ᴖ •́ ) Jugador 1 no activo...");
             return 0;
         }
         
-        if (jugador == 1 && !j1Activo) {
-            System.out.println("❌ Jugador 1 no está activo.");
+        if (player == 2 && !player2Active) {
+            System.out.println("( •̀ ᴖ •́ ) Jugador 2 no activo...");
             return 0;
         }
         
-        if (jugador == 2 && !j2Activo) {
-            System.out.println("❌ Jugador 2 no está activo.");
+        if (player < 1 || player > 2) {
+            System.out.println("(¬_¬) Opción inválida...");
             return 0;
         }
         
-        if (jugador < 1 || jugador > 2) {
-            System.out.println("❌ Jugador inválido.");
-            return 0;
-        }
-        
-        return jugador;
+        return player;
     }
     
-    private boolean hayJugadoresActivos() {
-        return j1Activo || j2Activo;
+    /**
+     * Checks if there are any active players.
+     * 
+     * @return true if at least one player is active, false otherwise
+     */
+    
+    private boolean arePlayersActive() {
+        return player1Active || player2Active;
     }
     
-    private void limpiarConsola() {
+    /**
+     * Clears the console screen for better menu presentation.
+     */
+    
+    private void clearConsole() {
         System.out.print("\033[H\033[2J");
         System.out.flush();
     }
     
-    private void esperarEnter() {
-        System.out.println("\nPresione Enter para continuar...");
+    /**
+     * Waits for the user to press Enter before continuing.
+     * Provides a pause for the user to read messages.
+     */
+
+    private void waitForEnter() {
+        System.out.println("\nDoble <ENTER> para continuar...");
         try {
             System.in.read();
             scanner.nextLine();
         } catch (Exception e) {
         }
     }
+    
+    /**
+     * Cleans up resources used by the GameAdmin.
+     * Should be called when the admin interface is no longer needed.
+     */
     
     public void cleanup() {
         if (scanner != null) {

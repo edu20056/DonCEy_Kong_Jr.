@@ -3,18 +3,23 @@ package Entities;
 import Utils.Coords;
 
 /**
- * Represents the main player character in the game,
+* Represents the main player character in the game, 
  * this class handles player positioning, directional facing, etc...
  */
 
 public class Player extends Entity {
-    final private int jumpStrength;
+    private final int JUMP_DURATION = 3;
+    final private int JUMP_STRENGTH = 3;
     private boolean facingRight;
     private boolean onGround;
     private boolean onVine;
     private boolean dead;
     private int points;
     private int lives;
+    private boolean isJumping = false;
+    private Coords jumpStartPosition;
+    private Coords jumpTargetPosition;
+    private int jumpProgress = 0;
 
     /**
      * Constructs a new Player entity at the specified coordinates.
@@ -26,7 +31,6 @@ public class Player extends Entity {
 
     public Player(int x, int y) {
         super(x, y);
-        this.jumpStrength = 3;
         this.facingRight = true;
         this.onGround = false;
         this.onVine = false;
@@ -43,6 +47,7 @@ public class Player extends Entity {
     public boolean isDead() { return dead; }
     public int getPoints() { return points; }
     public int getLives() { return lives; }
+    public boolean isJumping() { return isJumping; }
 
     public void setOnGround(boolean onGround) { this.onGround = onGround; }
     public void setOnVine(boolean onVine) { this.onVine = onVine; }
@@ -72,9 +77,9 @@ public class Player extends Entity {
         return new Coords(getX(), getY() + 1);
     }
     public Coords[] calculateJumpPositions() {
-        Coords[] jumpPositions = new Coords[jumpStrength];
+        Coords[] jumpPositions = new Coords[JUMP_STRENGTH];
 
-        for (int i = 0; i < jumpStrength; i++) {
+        for (int i = 0; i < JUMP_STRENGTH; i++) {
             jumpPositions[i] = new Coords(getX(), getY() - (i + 1));
         }
 
@@ -95,12 +100,44 @@ public class Player extends Entity {
             facingRight = moveRight;
         }
     }
-    public void applyJump(Coords jumpPos) {
-        if (!dead && !getPosition().equals(jumpPos)) {
-            setPosition(jumpPos);
-            onGround = false;
+   public void applyJump(Coords target) {
+        if (!isJumping && isOnGround()) {
+            isJumping = true;
+            jumpStartPosition = new Coords(position.getX(), position.getY());
+            jumpTargetPosition = target;
+            jumpProgress = 0;
         }
     }
+    
+    /**
+     * Updates player movement while jumping movement.
+     */
+
+    public void updateJump() {
+        if (!isJumping) return;
+        
+        jumpProgress++;
+        
+        if (jumpProgress >= JUMP_DURATION) {
+            position = new Coords(jumpTargetPosition.getX(), jumpTargetPosition.getY());
+            isJumping = false;
+            return;
+        }
+        
+        float t = (float) jumpProgress / JUMP_DURATION;
+        int currentX = (int) (jumpStartPosition.getX() + 
+                             (jumpTargetPosition.getX() - 
+                              jumpStartPosition.getX()) * t);
+        int currentY = (int) (jumpStartPosition.getY() + 
+                             (jumpTargetPosition.getY() - 
+                              jumpStartPosition.getY()) * t);
+        
+        position = new Coords(currentX, currentY);
+    }
+    
+    public void cancelJump() {
+        isJumping = false;
+    }    
     
     /**
      * Kills the player, setting the dead state to true.
