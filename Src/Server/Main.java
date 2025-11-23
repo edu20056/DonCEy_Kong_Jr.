@@ -75,7 +75,11 @@ public class Main {
     private static void gestionarConexionJugador1() {
         if (j1Activo) {
             Socket s1 = servidor.getSocketJugador(servidor.J1_NAME);
-            if (s1 == null || s1.isClosed()) return;
+            if (s1 == null || s1.isClosed()){
+                    servidor.J1_desc = true;
+                    servidor.J1_ING = true;  
+                    return;                    
+            }
 
             String json1 = adapter.generarJSON(
                 gameDataJ1.player, 
