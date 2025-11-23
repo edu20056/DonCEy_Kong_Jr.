@@ -15,7 +15,7 @@ import java.util.*;
 public class Main {
     private static final Coords SPAWN_J1 = new Coords(0, 19);
     private static final Coords SPAWN_J2 = new Coords(0, 19);
-    private static final int GAME_LOOP_DELAY = 100;
+    private static final int GAME_LOOP_DELAY = 30;
     private static final String LEVEL_PATH = "World/Levels/lvl1.txt";
     
     private static GameData gameDataJ1 = null;

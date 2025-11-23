@@ -8,7 +8,7 @@ import Utils.Coords;
  */
 
 public class GravitySystem {
-    private static final int GRAVITY_DELAY = 0;
+    private static final int GRAVITY_DELAY = 6;
     private static final float INITIAL_FALL_SPEED = 2.0f;
     private static final float MAX_FALL_SPEED = 5.5f;
     private static final float FALL_ACCELERATION = 1.5f;

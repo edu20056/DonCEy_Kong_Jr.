@@ -8,7 +8,7 @@ import Utils.Coords;
  */
 
 public class Player extends Entity {
-    private final int JUMP_DURATION = 3;
+    private final int JUMP_DURATION = 4;
     final private int JUMP_STRENGTH = 3;
     private boolean facingRight;
     private boolean onGround;
@@ -124,17 +124,12 @@ public class Player extends Entity {
             return;
         }
         
-        float t = (float) jumpProgress / JUMP_DURATION;
-        int currentX = (int) (jumpStartPosition.getX() + 
-                             (jumpTargetPosition.getX() - 
-                              jumpStartPosition.getX()) * t);
-        int currentY = (int) (jumpStartPosition.getY() + 
-                             (jumpTargetPosition.getY() - 
-                              jumpStartPosition.getY()) * t);
+        int currentX = jumpStartPosition.getX();
+        int currentY = jumpStartPosition.getY() - jumpProgress;
         
         position = new Coords(currentX, currentY);
     }
-    
+
     public void cancelJump() {
         isJumping = false;
     }    
